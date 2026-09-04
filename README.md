@@ -112,11 +112,15 @@ panel mid-lesson.
 **All eight figure kinds are drawable.** Bar models are draggable; the rest are read-only for
 now.
 
-**Content is the remaining gap.** Unit 2 (`linear-systems`) is fully authored: per-skill CPA
-notes, real misconception probes, and problems with structured answers that code can mark.
-The other thirteen units are mechanically ported from the syllabus outline — the tutor can
-teach them, and does so competently, but they share one set of CPA notes per unit and have
-no marked problems, so `check_answer` has nothing to check there. The dashboard labels which
-units are which.
+**Units 1–4 are authored** — the algebra spine, in course order: exponents, linear systems,
+expansion, quadratic factorisation. Each has per-skill CPA notes, misconception probes taken
+from the source PDFs, and problems with structured answers that code can mark.
+
+**Ten units remain mechanically ported.** The tutor teaches them competently off the
+syllabus outline, but they share one set of CPA notes per unit and have no marked problems,
+so `check_answer` has nothing to check and no mastery evidence accumulates there. The
+dashboard labels which units are which, and `content.test.ts` holds every unit listed in
+`AUTHORED_UNITS` to the full standard — adding a unit to that set without doing the work
+fails the build.
 
 See [docs/REBUILD-PLAN.md](docs/REBUILD-PLAN.md) for the full plan and phasing.

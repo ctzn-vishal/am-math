@@ -1,6 +1,12 @@
 import { curriculumPackSchema, type CurriculumPack } from '@/lib/content/schema';
 import generated from './generated.json';
+import { exponentsSkills, exponentsProblems } from './exponents';
 import { linearSystemsSkills, linearSystemsProblems } from './linear-systems';
+import { expansionSkills, expansionProblems } from './expansion';
+import {
+  quadraticFactorisationSkills,
+  quadraticFactorisationProblems,
+} from './quadratic-factorisation';
 
 /**
  * Assembles the pack: the mechanically ported skeleton, with hand-authored units laid over
@@ -20,10 +26,26 @@ import { linearSystemsSkills, linearSystemsProblems } from './linear-systems';
  */
 
 /** Units that have had the full authoring pass: per-skill CPA notes, real probes, marked problems. */
-export const AUTHORED_UNITS = new Set(['linear-systems']);
+export const AUTHORED_UNITS = new Set([
+  'exponents',
+  'linear-systems',
+  'expansion',
+  'quadratic-factorisation',
+]);
 
-const authoredSkills = [...linearSystemsSkills];
-const authoredProblems = [...linearSystemsProblems];
+const authoredSkills = [
+  ...exponentsSkills,
+  ...linearSystemsSkills,
+  ...expansionSkills,
+  ...quadraticFactorisationSkills,
+];
+
+const authoredProblems = [
+  ...exponentsProblems,
+  ...linearSystemsProblems,
+  ...expansionProblems,
+  ...quadraticFactorisationProblems,
+];
 
 const authoredSkillIds = new Set(authoredSkills.map((s) => s.id));
 

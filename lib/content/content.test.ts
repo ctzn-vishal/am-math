@@ -43,36 +43,86 @@ describe('dimensions-g8 pack', () => {
 });
 
 describe('authored units', () => {
-  it('has linear-systems fully authored with marked problems', () => {
-    expect(AUTHORED_UNITS.has('linear-systems')).toBe(true);
+  const authored = [...AUTHORED_UNITS];
 
-    const skills = skillsOfUnit('linear-systems');
-    expect(skills).toHaveLength(3);
-
-    // The tell for a mechanically ported skill is three identical CPA notes shared across
-    // the whole unit. An authored unit must not have that.
-    const concreteNotes = skills.map((s) => s.cpa.concrete);
-    expect(new Set(concreteNotes).size).toBe(3);
-
-    for (const skill of skills) {
-      expect(skill.summary.length).toBeGreaterThan(0);
-    }
+  it('covers the first four units of the course', () => {
+    expect(authored.sort()).toEqual(
+      ['exponents', 'expansion', 'linear-systems', 'quadratic-factorisation'].sort(),
+    );
   });
 
-  it('gives every authored problem a machine-checkable answer', () => {
-    for (const problem of getPack().problems) {
-      expect(problem.answer.type).not.toBe(undefined);
-      expect(problem.hints.length).toBeGreaterThan(0);
-      expect(problem.solution.length).toBeGreaterThan(0);
-    }
-  });
+  /**
+   * The authoring standard, enforced rather than described. The tell for a mechanically
+   * ported unit is that every skill in it shares one set of CPA notes, inherited from the
+   * chapter — so an authored unit must not have that, and must carry the rest of what
+   * `docs/` provides: a summary, real probes, and problems code can mark.
+   */
+  for (const unitId of AUTHORED_UNITS) {
+    describe(unitId, () => {
+      const skills = skillsOfUnit(unitId);
 
-  it('links problems to misconceptions that actually exist', () => {
-    // checkPackIntegrity covers this, but assert it directly for the authored unit since
-    // these codes are what the mastery model will key on.
-    const problems = problemsForSkill('linear-systems.solve-simultaneous-linear');
-    expect(problems.length).toBeGreaterThan(0);
-    expect(problems[0]?.misconceptionCodes.length).toBeGreaterThan(0);
+      it('has skills', () => {
+        expect(skills.length).toBeGreaterThan(0);
+      });
+
+      it("gives each skill its own CPA notes rather than the unit's", () => {
+        for (const stage of ['concrete', 'pictorial', 'abstract'] as const) {
+          const notes = skills.map((s) => s.cpa[stage]);
+          expect(new Set(notes).size, `${unitId} shares one ${stage} note across skills`).toBe(
+            skills.length,
+          );
+        }
+      });
+
+      it('writes a summary for every skill', () => {
+        for (const skill of skills) {
+          expect(skill.summary.length, skill.id).toBeGreaterThan(30);
+        }
+      });
+
+      it('carries misconceptions with a probe and a correction', () => {
+        const all = skills.flatMap((s) => s.misconceptions);
+        expect(all.length, `${unitId} has no misconceptions`).toBeGreaterThan(0);
+
+        for (const m of all) {
+          // A probe is a question that surfaces the error, not a restatement of it.
+          expect(m.probe, m.code).toMatch(/\?/);
+          expect(m.correction.length, m.code).toBeGreaterThan(40);
+          // The generated port used `unit.mis-N`; authored codes name the error.
+          expect(m.code, 'authored codes should be descriptive').not.toMatch(/\.mis-\d+$/);
+        }
+      });
+
+      it('has at least one markable problem', () => {
+        const problems = getPack().problems.filter((p) =>
+          p.skillIds.some((id) => skills.some((s) => s.id === id)),
+        );
+        expect(problems.length, `${unitId} has no problems`).toBeGreaterThan(0);
+
+        for (const problem of problems) {
+          expect(problem.hints.length, problem.id).toBeGreaterThanOrEqual(2);
+          expect(problem.solution.length, problem.id).toBeGreaterThan(40);
+          expect(problem.misconceptionCodes.length, problem.id).toBeGreaterThan(0);
+          // Every CPA stage gets its own prompt, or the tutor has nothing to work from
+          // at whichever stage the student is on.
+          for (const stage of ['concrete', 'pictorial', 'abstract'] as const) {
+            expect(problem.cpaPrompts[stage].length, `${problem.id}.${stage}`).toBeGreaterThan(30);
+          }
+        }
+      });
+    });
+  }
+
+  it('leaves the remaining units honestly marked as unported', () => {
+    const ported = getPack().units.filter((u) => !AUTHORED_UNITS.has(u.id));
+    expect(ported.length).toBe(10);
+
+    // Their skills should still share inherited notes — that is what the dashboard warns about.
+    const shared = ported.filter((u) => {
+      const skills = skillsOfUnit(u.id);
+      return skills.length > 1 && new Set(skills.map((s) => s.cpa.concrete)).size === 1;
+    });
+    expect(shared.length).toBe(ported.length);
   });
 });
 

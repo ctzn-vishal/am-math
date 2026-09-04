@@ -8,12 +8,12 @@ Supersedes the AI Studio scaffold at commit `d7e2ac3`. Building on branch `rebui
 | --- | --- |
 | 0 — Foundation | Done. Next.js 16, Turso (libsql) + Drizzle with auto-migration, skill-graph content layer. |
 | 1 — Vertical slice | Done and verified live. Streaming tutor loop, interactive bar model, student → tutor spec round trip, unit 2 authored, evidence recorded end to end. |
-| 2 — Breadth | **Renderers done** — all eight kinds draw, verified live. **Authoring outstanding** — 13 units still mechanically ported. |
+| 2 — Breadth | Renderers done, all eight verified live. Units 1–4 authored; **10 units still mechanically ported**. |
 | 3 — Student model | Model and estimator done and tested; no progress UI beyond the dashboard bands. |
 | 4 — Multimodal | Photo upload path is wired end to end but unexercised. Voice not started. |
 | 5 — Polish | Not started. |
 
-160 tests.
+179 tests.
 
 ## Deployment
 
