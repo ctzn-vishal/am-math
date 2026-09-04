@@ -62,7 +62,7 @@ function validateBarModel(spec: BarModelSpec): SpecIssue[] {
   let scaleSource = '';
 
   // The same unknown must occupy the same width everywhere, or comparison is meaningless.
-  const unknownWidths = new Map<string, { units: number; path: string }>();
+  const unknownWidths = new Map<string, { units: number; where: string }>();
 
   const seenRowIds = new Set<string>();
 
@@ -91,16 +91,19 @@ function validateBarModel(spec: BarModelSpec): SpecIssue[] {
 
         const prior = unknownWidths.get(seg.label);
         if (prior && !approxEqual(prior.units, seg.units)) {
+          // Named by row rather than by array index: this message is shown to the student
+          // as well as returned to the model, and "rows[0].segments[2]" means nothing to
+          // someone looking at a picture.
           issues.push(
             err(
               `${segPath}.units`,
-              `Unknown "${seg.label}" is drawn ${seg.units} units wide here but ${prior.units} at ` +
-                `${prior.path}. The same unknown must be the same width everywhere, or the bars ` +
-                `cannot be compared.`,
+              `"${seg.label}" is ${round(seg.units)} wide in "${row.label}" but ` +
+                `${round(prior.units)} wide in "${prior.where}". The same unknown has to be the ` +
+                `same width everywhere, or the rows cannot be compared.`,
             ),
           );
         } else if (!prior) {
-          unknownWidths.set(seg.label, { units: seg.units, path: segPath });
+          unknownWidths.set(seg.label, { units: seg.units, where: row.label });
         }
         return;
       }
@@ -122,15 +125,15 @@ function validateBarModel(spec: BarModelSpec): SpecIssue[] {
       const thisScale = seg.units / seg.value;
       if (scale === null) {
         scale = thisScale;
-        scaleSource = `${segPath} ("${seg.label}" = ${seg.value} at ${seg.units} units)`;
+        scaleSource = `"${seg.label}" (worth ${seg.value}, drawn ${round(seg.units)} wide)`;
       } else if (!approxEqual(scale, thisScale)) {
         const expected = seg.value * scale;
         issues.push(
           err(
             `${segPath}.units`,
-            `Scale break: "${seg.label}" is worth ${seg.value} so it must be ${round(expected)} units ` +
-              `wide to match ${scaleSource}, but it is ${seg.units}. Every block in the diagram shares ` +
-              `one scale.`,
+            `Scale break: "${seg.label}" is worth ${seg.value}, so to match ${scaleSource} it has ` +
+              `to be ${round(expected)} wide — but it is ${round(seg.units)}. Every block in the ` +
+              `diagram shares one scale.`,
           ),
         );
       }

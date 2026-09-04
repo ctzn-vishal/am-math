@@ -66,7 +66,9 @@ describe('bar_model', () => {
     });
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('Scale break');
-    expect(errors[0]).toContain('must be 4 units wide');
+    expect(errors[0]).toContain('has to be 4 wide');
+    // Named by label, not by array index: this message reaches the student too.
+    expect(errors[0]).not.toContain('rows[');
   });
 
   it('rejects the same unknown drawn at two different widths', () => {
@@ -78,7 +80,9 @@ describe('bar_model', () => {
       ],
     });
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain('same unknown must be the same width');
+    expect(errors[0]).toContain('same unknown has to be the same width');
+    expect(errors[0]).toContain('in "B" but');
+    expect(errors[0]).not.toContain('segments[');
   });
 
   it('rejects a row whose parts do not sum to its stated total', () => {

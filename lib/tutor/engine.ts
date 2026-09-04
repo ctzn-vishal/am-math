@@ -3,7 +3,7 @@ import type { Problem, SkillNode } from '@/lib/content/schema';
 import type { CpaStage } from '@/lib/db/schema';
 import { parseVisualSpec } from '@/lib/visual/registry';
 import type { VisualSpec } from '@/lib/visual/spec';
-import type { SpecIssue } from '@/lib/visual/validate';
+import { validateSpec, type SpecIssue } from '@/lib/visual/validate';
 import { checkAnswer, type CheckResult } from './check';
 import { buildLessonContext, SYSTEM_INSTRUCTION, type LessonContext } from './prompt';
 import { buildTools, kindFromToolName } from './tools';
@@ -41,6 +41,11 @@ export interface TurnInput {
   text: string;
   /** Data URL of an attached photo, e.g. their handwritten working. */
   imageDataUrl?: string;
+  /**
+   * A figure the student rearranged on the canvas. Passed as a spec rather than as prose so
+   * the tutor sees exactly what they built, down to the block widths.
+   */
+  studentSpec?: VisualSpec;
   /** Gemini's id for the previous turn, so the model keeps its own context server-side. */
   previousInteractionId?: string | null;
   skill: SkillNode;
@@ -233,6 +238,28 @@ function buildInitialInput(input: TurnInput): unknown {
     if (match) {
       content.push({ type: 'image', mime_type: match[1], data: match[2] });
     }
+  }
+
+  if (input.studentSpec) {
+    const check = validateSpec(input.studentSpec);
+    const problems = check.issues.filter((i) => i.severity === 'error');
+
+    content.push({
+      type: 'text',
+      text: [
+        'The student rearranged the figure on the canvas. This is exactly what it looks like now:',
+        '',
+        JSON.stringify(input.studentSpec),
+        '',
+        problems.length > 0
+          ? 'It no longer holds together:\n' +
+            problems.map((i) => `- ${i.message}`).join('\n') +
+            '\n\nDo not simply correct it. Ask a question that makes them notice the ' +
+            'inconsistency themselves — this is a good moment for them to learn what the ' +
+            'scale of a bar model actually means.'
+          : 'It is mathematically consistent. Respond to what they were trying to show.',
+      ].join('\n'),
+    });
   }
 
   if (input.text.trim().length > 0) {
