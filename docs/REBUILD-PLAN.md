@@ -1,6 +1,26 @@
 # Singapore Math Sage — Rebuild Plan
 
-Status: draft for review. Supersedes the AI Studio scaffold at commit `d7e2ac3`.
+Supersedes the AI Studio scaffold at commit `d7e2ac3`. Building on branch `rebuild`.
+
+## Progress
+
+| Phase | State |
+| --- | --- |
+| 0 — Foundation | Done. Next.js 16, SQLite + Drizzle with auto-migration, skill-graph content layer, 124 tests. |
+| 1 — Vertical slice | Mostly done. Streaming tutor loop, `render_bar_model` tool, interactive bar model, student → tutor spec round trip, unit 2 authored. **Not yet run against a live Gemini key** — see below. |
+| 2 — Breadth | Not started. 7 remaining renderers, 13 units to author. |
+| 3 — Student model | Model and estimator done and tested; no progress UI beyond the dashboard bands. |
+| 4 — Multimodal | Photo upload path is wired end to end but unexercised. Voice not started. |
+| 5 — Polish | Not started. |
+
+### Known gap
+
+Everything downstream of `ai.interactions.create` is written against the SDK's type
+definitions and the published API docs, not against a live response. The tool round-trip
+loop, the streaming event names, and — most importantly — whether the tutor actually
+*behaves* the way the prompt asks (draws often, refuses to hand over answers, calls
+`check_answer` before praising) are all unverified. First run with a real key is the next
+thing to do, and should be treated as a debugging session, not a demo.
 
 ## 1. Why rebuild rather than repair
 
