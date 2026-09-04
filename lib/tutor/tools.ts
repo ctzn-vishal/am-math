@@ -65,7 +65,12 @@ const checkAnswerTool: ToolDeclaration = {
       student_response: {
         type: 'string',
         description:
-          'What the student actually wrote, verbatim. Do not tidy it, complete it, or convert it.',
+          'The value or values the student has committed to, in their own words and their own ' +
+          'numbers. If their message also contains working or reasoning, pass only the answer ' +
+          'they land on — "a = 8, c = 6", not the whole paragraph, because intermediate numbers ' +
+          'in their working cannot be told apart from their answer. Never correct, complete or ' +
+          'convert what they wrote: if they said 12, pass 12, even when you can see it should ' +
+          'have been 21.',
       },
     },
     required: ['problem_id', 'student_response'],

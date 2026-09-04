@@ -46,6 +46,23 @@ describe('coordinates', () => {
     const result = checkAnswer('somewhere between 1 2 3 4 5', coords);
     expect(result.status).toBe('unparseable');
   });
+
+  // The model is told to pass only the values the student commits to, not their whole
+  // message. These are the phrasings that reach the checker once it does.
+  it('reads a natural-language answer with two named quantities', () => {
+    expect(checkAnswer('adult ticket is 8 and a child ticket is 6', tickets).status).toBe('correct');
+    expect(checkAnswer('adult 8, child 6', tickets).status).toBe('correct');
+    expect(checkAnswer('8 for adults and 6 for children', tickets).status).toBe('correct');
+  });
+
+  it('stays unparseable when a whole worked paragraph is passed', () => {
+    // Intermediate numbers in the working cannot be distinguished from the answer, so
+    // refusing is correct — this must not silently mark a right answer wrong.
+    const paragraph =
+      'The leftover is 7 adult tickets and it is worth 56. So an adult ticket is 8 and a child ' +
+      'ticket is 6.';
+    expect(checkAnswer(paragraph, tickets).status).toBe('unparseable');
+  });
 });
 
 describe('number', () => {

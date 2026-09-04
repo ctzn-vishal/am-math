@@ -199,7 +199,12 @@ export function Lesson({
   return (
     <div className="flex h-dvh flex-col lg:flex-row">
       {/* Canvas */}
-      <section className="flex min-h-0 shrink-0 flex-col border-b border-line bg-surface lg:h-full lg:w-[55%] lg:shrink lg:border-b-0 lg:border-r">
+      {/*
+        Stacked below lg, the canvas is capped so the conversation always keeps roughly half
+        the screen. Without it an empty canvas — or a tall figure — pushes the input off the
+        bottom on a tablet, which is where most of the reading happens.
+      */}
+      <section className="flex max-h-[48dvh] min-h-0 shrink-0 flex-col border-b border-line bg-surface lg:max-h-none lg:h-full lg:w-[55%] lg:shrink lg:border-b-0 lg:border-r">
         <header className="flex items-start gap-3 border-b border-line px-4 py-3.5 sm:px-5">
           <Link
             href="/"

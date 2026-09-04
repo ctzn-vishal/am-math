@@ -105,6 +105,12 @@ export function strength(posterior: Posterior): number {
   return posterior.alpha + posterior.beta - PRIOR_ALPHA - PRIOR_BETA;
 }
 
+/** Below this much evidence, the estimate is not worth reporting a verdict on. */
+const MIN_EVIDENCE_FOR_VERDICT = 1.5;
+
+/** "Secure" needs more than a couple of lucky turns behind it. */
+const MIN_EVIDENCE_FOR_SECURE = 2.5;
+
 export function band(posterior: Posterior, attemptCount: number): MasteryBand {
   if (attemptCount === 0) return 'unseen';
 
@@ -113,9 +119,16 @@ export function band(posterior: Posterior, attemptCount: number): MasteryBand {
 
   // "Secure" requires both a high estimate and enough evidence to trust it. Without the
   // second condition a single correct answer would read as mastery.
-  if (p >= 0.8 && s >= 2.5) return 'secure';
-  if (p >= 0.6) return 'approaching';
-  return 'developing';
+  if (p >= 0.8 && s >= MIN_EVIDENCE_FOR_SECURE) return 'secure';
+
+  // Both directions need the same scepticism. One attempt — right or wrong — is not a
+  // pattern, and telling a student they are shaky at something they just got right is both
+  // untrue and the fastest way to lose them. A verdict of "developing" has to be earned by
+  // repeated evidence, not scraped off a knife-edge threshold that a few seconds of decay
+  // can tip either way.
+  if (s < MIN_EVIDENCE_FOR_VERDICT) return 'approaching';
+
+  return p < 0.55 ? 'developing' : 'approaching';
 }
 
 export function toMastery(
@@ -209,10 +222,11 @@ export function recommend(
     }
   }
 
-  // 3. Material that has faded. Only once nothing more urgent is outstanding.
+  // 3. Material that has faded. Only once nothing more urgent is outstanding, and only
+  //    where there is enough history to say it was ever held in the first place.
   for (const skill of ordered) {
     const m = masteryOf(skill.skillId);
-    if (m.band === 'approaching' && m.attemptCount > 0) {
+    if (m.band === 'approaching' && m.strength >= 2) {
       push(skill.skillId, 'review', 'You had this — a quick revisit will make it stick.');
     }
   }

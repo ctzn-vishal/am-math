@@ -52,6 +52,26 @@ describe('mastery bands', () => {
     expect(band(after, 1)).not.toBe('secure');
   });
 
+  it('does not call a skill shaky after one correct answer', () => {
+    // Regression: with knife-edge thresholds this landed on "developing" — telling a student
+    // they were shaky at something they had just got right.
+    const after = update(INITIAL_POSTERIOR, { correct: true, hintsUsed: 0, cpaStage: 'abstract' });
+    expect(band(after, 1)).toBe('approaching');
+  });
+
+  it('does not call a skill shaky after one wrong answer either', () => {
+    const after = update(INITIAL_POSTERIOR, { correct: false, hintsUsed: 0, cpaStage: 'abstract' });
+    expect(band(after, 1)).toBe('approaching');
+  });
+
+  it('survives a moment of decay without changing verdict', () => {
+    // The same knife-edge: a few seconds between writing and reading must not flip a band.
+    let p = INITIAL_POSTERIOR;
+    p = update(p, { correct: true, hintsUsed: 0, cpaStage: 'abstract' });
+    const now = Date.now();
+    expect(toMastery('s', p, 1, now, now).band).toBe(toMastery('s', p, 1, now - 5000, now).band);
+  });
+
   it('reaches secure after sustained unaided success', () => {
     let p = INITIAL_POSTERIOR;
     for (let i = 0; i < 8; i++) {
@@ -144,9 +164,9 @@ describe('recommendations', () => {
     const recs = recommend(
       skills,
       mastery([
-        ['a', { band: 'approaching', attemptCount: 5, estimate: 0.7 }],
-        ['b', { band: 'secure', attemptCount: 8, estimate: 0.9 }],
-        ['c', { band: 'secure', attemptCount: 8, estimate: 0.9 }],
+        ['a', { band: 'approaching', attemptCount: 5, estimate: 0.7, strength: 4 }],
+        ['b', { band: 'secure', attemptCount: 8, estimate: 0.9, strength: 6 }],
+        ['c', { band: 'secure', attemptCount: 8, estimate: 0.9, strength: 6 }],
       ]),
       3,
     );
