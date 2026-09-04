@@ -3,7 +3,7 @@ import { executeTool, type TurnInput } from './engine';
 import { buildTools, renderToolName, kindFromToolName } from './tools';
 import { buildLessonContext, SYSTEM_INSTRUCTION } from './prompt';
 import { getSkill, getProblem } from '@/lib/content';
-import { IMPLEMENTED_KINDS } from '@/lib/visual/registry';
+import { IMPLEMENTED_KINDS, assertGeminiCompatible } from '@/lib/visual/registry';
 
 const skill = getSkill('linear-systems.solve-simultaneous-linear');
 const problem = getProblem('linear-systems.substitution-basic');
@@ -72,14 +72,14 @@ describe('render tools', () => {
     expect(payload.note).toContain('call the tool again');
   });
 
-  it('refuses a kind that has no renderer', () => {
+  it('draws the other seven kinds now that they have renderers', () => {
     const outcome = executeTool(
       'render_area_grid',
-      { columns: ['x'], rows: ['x'], cells: ['x^2'] },
+      { columns: ['x', '+3'], rows: ['x', '+2'], cells: ['x²', '3x', '2x', '6'] },
       baseInput,
     );
-    expect(outcome.isError).toBe(true);
-    expect(JSON.stringify(outcome.payload)).toContain('no renderer yet');
+    expect(outcome.isError).toBe(false);
+    expect(outcome.events[0]?.type).toBe('visual');
   });
 
   it('passes warnings through without blocking the render', () => {
@@ -233,6 +233,17 @@ describe('tool declarations', () => {
     expect(properties['kind']).toBeUndefined();
     expect(properties['rows']).toBeDefined();
     expect(tool?.parameters['required']).not.toContain('kind');
+  });
+
+  it('sends nothing the Gemini schema subset cannot express', () => {
+    // The regression this guards: a tuple and a discriminated union in coordinate_plane
+    // serialised to array-form `items` and `oneOf`/`const`. Gemini rejected the entire
+    // request with "Invalid JSON payload: syntax error in request body" — naming no field,
+    // no tool, nothing. Every turn failed until it was tracked down by hand. Asserted on
+    // the built declarations because that is the exact payload that goes over the wire.
+    for (const tool of tools) {
+      expect(() => assertGeminiCompatible(tool.parameters, tool.name)).not.toThrow();
+    }
   });
 
   it('narrows log_misconception to codes that exist for the skill', () => {

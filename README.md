@@ -13,21 +13,29 @@ back to the tutor as a figure, not as a description of one.
 npm install
 ```
 
-Copy the environment template and add a Gemini API key from
-[aistudio.google.com/apikey](https://aistudio.google.com/apikey):
-
 ```bash
 cp .env.example .env.local
 ```
 
-Then:
+Fill in three things:
+
+| Variable | Where from |
+| --- | --- |
+| `GEMINI_API_KEY` | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` | `turso db create math-sage`, then `turso db show --url` and `turso db tokens create` |
+| `TUTOR_ACCESS_SECRET` | Any passphrase. Gates the whole app. |
+
+Paste each value on **one line** — a wrapped token reads as empty.
 
 ```bash
 npm run dev
 ```
 
-The SQLite database is created and migrated on first request. There is no separate database
-step.
+Migrations run automatically on the first request. There is no separate database step.
+
+Without Turso credentials it falls back to a local SQLite file, which is fine for
+development and **cannot** work on Vercel — the filesystem there is ephemeral, so the app
+refuses to start rather than silently discarding a student's progress.
 
 | Script | What it does |
 | --- | --- |
@@ -35,7 +43,7 @@ step.
 | `npm run build` | Production build |
 | `npm test` | Vitest |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run db:studio` | Drizzle Studio against the local database |
+| `npm run db:studio` | Drizzle Studio against whatever the app is pointed at |
 
 ## How it fits together
 
@@ -74,9 +82,21 @@ working tutor.
 2. Add its soundness checks to `lib/visual/validate.ts`
 3. Write the renderer in `components/visual/`
 4. Flip `implemented: true` in `lib/visual/registry.ts`
+5. Add a spec to `lib/visual/gallery.ts` and look at it on `/figures`
 
 The tool declarations sent to Gemini are generated from that registry, so the tutor gains the
 new figure with no prompt change — and can never be offered one the app cannot draw.
+
+**Keep the schema flat.** Gemini's function-calling schema is an OpenAPI 3.0 subset: no
+`oneOf`, no `const`, no tuple-form `items`. A spec that emits any of those gets the *entire*
+request rejected with `Invalid JSON payload: syntax error in request body`, naming no field
+and no tool — the tutor simply stops working. `assertGeminiCompatible` catches it in a test
+instead; see the note on `curveSchema` for how to flatten a union.
+
+`/figures` renders every kind from a real spec. It is development-only, and it is the only
+way to judge a renderer — a chart can pass every assertion and still be unreadable. Two bugs
+that no test caught were found by looking at it: a line that silently did not draw at all,
+and a cone captioned `r = 3, h = 4` drawn at 2.45:1.
 
 ### Adding a curriculum
 
@@ -89,13 +109,14 @@ panel mid-lesson.
 
 ## State of the build
 
-Unit 2 (`linear-systems`) is fully authored: per-skill CPA notes, real misconception probes,
-and problems with structured answers that code can mark. The other thirteen units are
-mechanically ported from the syllabus outline — the tutor can teach them, but they share one
-set of CPA notes per unit and have no marked problems yet. The dashboard says which is which.
+**All eight figure kinds are drawable.** Bar models are draggable; the rest are read-only for
+now.
 
-`bar_model` is the only figure with a renderer. The other seven kinds are specified and
-validated but not yet drawable, and the registry keeps them out of the tutor's hands until
-they are.
+**Content is the remaining gap.** Unit 2 (`linear-systems`) is fully authored: per-skill CPA
+notes, real misconception probes, and problems with structured answers that code can mark.
+The other thirteen units are mechanically ported from the syllabus outline — the tutor can
+teach them, and does so competently, but they share one set of CPA notes per unit and have
+no marked problems, so `check_answer` has nothing to check there. The dashboard labels which
+units are which.
 
 See [docs/REBUILD-PLAN.md](docs/REBUILD-PLAN.md) for the full plan and phasing.

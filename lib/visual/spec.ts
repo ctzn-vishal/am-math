@@ -75,30 +75,42 @@ export const barModelSpec = z.object({
 // algebra_tiles — concrete tiles for expansion, factorisation, completing the square
 // ---------------------------------------------------------------------------
 
-export const tileSchema = z.object({
-  id: z.string().min(1).max(40),
+/**
+ * Tiles are declared as counts, not coordinates.
+ *
+ * An earlier version had the model place each tile on a grid, which was a mistake twice
+ * over: laying out a rectangle is not what a language model is good at, and a unit-integer
+ * grid cannot hold an x-tile whose length is deliberately *not* a whole number of units
+ * (make it exactly 4 and a student reads x = 4 off the picture). Saying what tiles exist
+ * and what shape to make of them leaves the geometry to the renderer, which can do it
+ * exactly.
+ */
+export const tileGroupSchema = z.object({
   type: z.enum(['x2', 'x', 'unit']).describe('Tile shape: x² square, x rectangle, or unit square.'),
-  sign: z.enum(['positive', 'negative']),
-  /** Grid coordinates, top-left origin, in tile units. */
-  col: z.number().int().min(0).max(40),
-  row: z.number().int().min(0).max(40),
+  sign: z.enum(['positive', 'negative']).default('positive'),
+  count: z.number().int().min(0).max(40),
 });
 
 export const algebraTilesSpec = z.object({
   kind: z.literal('algebra_tiles'),
   ...specBase,
-  tiles: z.array(tileSchema).max(120),
-  frame: z
+  tiles: z
+    .array(tileGroupSchema)
+    .min(1)
+    .max(6)
+    .describe('One entry per tile type and sign, e.g. one x² and six positive x tiles.'),
+  arrangement: z
     .enum(['loose', 'rectangle', 'square'])
     .default('loose')
     .describe(
-      '"loose" is a free workbench. "rectangle" asks the student to assemble a rectangle (factorisation). ' +
-        '"square" asks for a completed square.',
+      '"loose" is a free workbench, tiles simply grouped. "rectangle" assembles them into the ' +
+        'rectangle whose sides are the factors. "square" builds the L-shape of completing the ' +
+        'square, leaving the corner visibly empty.',
     ),
   showZeroPairs: z
     .boolean()
     .default(false)
-    .describe('Draw a link between each +/- pair that cancels.'),
+    .describe('Link each +/- pair that cancels, so zero pairs are seen rather than asserted.'),
 });
 
 // ---------------------------------------------------------------------------
@@ -112,10 +124,13 @@ export const areaGridSpec = z.object({
   columns: z.array(z.string().max(20)).min(1).max(5),
   rows: z.array(z.string().max(20)).min(1).max(5),
   /**
-   * Cell contents in row-major order, length must equal rows.length * columns.length.
-   * Use null for a cell the student is meant to fill in.
+   * Cell contents in row-major order; length must equal rows.length * columns.length.
+   * An empty string leaves the cell blank for the student to fill in.
    */
-  cells: z.array(z.string().max(30).nullable()).max(25),
+  cells: z
+    .array(z.string().max(30))
+    .max(25)
+    .describe('Row-major. Use "" for a cell the student should work out.'),
   widths: z
     .array(z.number().positive().max(100))
     .optional()
@@ -191,32 +206,38 @@ export const angleDiagramSpec = z.object({
 // coordinate_plane — linear and quadratic graphs, coordinate geometry
 // ---------------------------------------------------------------------------
 
+/**
+ * Curves are one flat shape with a `type` tag rather than a discriminated union.
+ *
+ * A union serialises to `oneOf` with `const` discriminators, and the Gemini function-calling
+ * schema is an OpenAPI 3.0 subset that accepts neither — the whole request is rejected. The
+ * coefficient combination each type needs is checked in `validate.ts` instead, which is
+ * where the rest of the mathematical soundness checks already live.
+ */
+export const curveSchema = z.object({
+  type: z.enum(['linear', 'quadratic']),
+  /** Gradient, for a line. */
+  m: z.number().optional(),
+  /** Intercept for a line; constant term for a parabola. */
+  c: z.number(),
+  /** x² coefficient, for a parabola. */
+  a: z.number().optional(),
+  /** x coefficient, for a parabola. */
+  b: z.number().optional(),
+  label: z.string().max(30).optional(),
+});
+
 export const coordinatePlaneSpec = z.object({
   kind: z.literal('coordinate_plane'),
   ...specBase,
-  xRange: z.tuple([z.number(), z.number()]),
-  yRange: z.tuple([z.number(), z.number()]),
+  // Separate bounds rather than a tuple: a tuple serialises to an array-form `items`, which
+  // the Gemini schema subset rejects outright.
+  xMin: z.number(),
+  xMax: z.number(),
+  yMin: z.number(),
+  yMax: z.number(),
   gridStep: z.number().positive().default(1),
-  curves: z
-    .array(
-      z.discriminatedUnion('type', [
-        z.object({
-          type: z.literal('linear'),
-          m: z.number(),
-          c: z.number(),
-          label: z.string().max(30).optional(),
-        }),
-        z.object({
-          type: z.literal('quadratic'),
-          a: z.number(),
-          b: z.number(),
-          c: z.number(),
-          label: z.string().max(30).optional(),
-        }),
-      ]),
-    )
-    .max(4)
-    .default([]),
+  curves: z.array(curveSchema).max(4).default([]),
   points: z
     .array(
       z.object({
@@ -312,6 +333,7 @@ export type AreaGridSpec = z.infer<typeof areaGridSpec>;
 export type CrossFrameSpec = z.infer<typeof crossFrameSpec>;
 export type AngleDiagramSpec = z.infer<typeof angleDiagramSpec>;
 export type CoordinatePlaneSpec = z.infer<typeof coordinatePlaneSpec>;
+export type Curve = z.infer<typeof curveSchema>;
 export type SolidNetSpec = z.infer<typeof solidNetSpec>;
 export type StatPlotSpec = z.infer<typeof statPlotSpec>;
 

@@ -6,32 +6,51 @@ Supersedes the AI Studio scaffold at commit `d7e2ac3`. Building on branch `rebui
 
 | Phase | State |
 | --- | --- |
-| 0 — Foundation | Done. Next.js 16, SQLite + Drizzle with auto-migration, skill-graph content layer. |
-| 1 — Vertical slice | **Done and verified live.** Streaming tutor loop, `render_bar_model`, interactive bar model, student → tutor spec round trip, unit 2 authored, evidence recorded end to end. |
-| 2 — Breadth | Not started. 7 remaining renderers, 13 units to author. |
+| 0 — Foundation | Done. Next.js 16, Turso (libsql) + Drizzle with auto-migration, skill-graph content layer. |
+| 1 — Vertical slice | Done and verified live. Streaming tutor loop, interactive bar model, student → tutor spec round trip, unit 2 authored, evidence recorded end to end. |
+| 2 — Breadth | **Renderers done** — all eight kinds draw, verified live. **Authoring outstanding** — 13 units still mechanically ported. |
 | 3 — Student model | Model and estimator done and tested; no progress UI beyond the dashboard bands. |
 | 4 — Multimodal | Photo upload path is wired end to end but unexercised. Voice not started. |
 | 5 — Polish | Not started. |
 
-129 tests.
+160 tests.
 
-### What the first live run showed
+## Deployment
 
-The loop worked on the first turn. Asked "I don't know where to start", the model called
-`render_bar_model` with a spec that passed validation — both receipts drawn on one shared
-scale, the second doubled — and then asked what the leftover strip was made of rather than
-answering. Given a right answer it called `check_answer` before saying anything about
-correctness, and at the concrete stage it reached for the balance scale from the authored
-CPA notes rather than inventing its own metaphor. The prompt is doing its job.
+Vercel, from `main`. Three environment variables have to be set there:
 
-Three fixes came out of it, all recorded in `06654e8`: the `check_answer` contract (pass the
-committed values, not the whole message), knife-edge mastery bands, and a tablet layout
-where the canvas could push the input off screen.
+- `GEMINI_API_KEY`
+- `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` — a local SQLite file cannot work on a
+  serverless host, and the app refuses to start rather than losing progress silently
+- `TUTOR_ACCESS_SECRET` — without it the deployment serves a 503 rather than an open door
+  that spends the Gemini quota for anyone who finds the URL
 
-### Still unverified
+## What the live runs showed
+
+The tutoring loop worked on the first turn against a real key: the model drew a validated
+figure and asked what the leftover strip was made of rather than answering. At the concrete
+stage it reached for the balance scale from the authored CPA notes rather than inventing its
+own metaphor. Given the new renderers, it drew `(a+b)²` as a proportional area grid and
+asked which regions get left out.
+
+Four fixes came out of running it rather than reading it:
+
+- **`check_answer` was handed whole paragraphs.** Told to pass the student "verbatim", the
+  model forwarded their working along with their answer, and four numbers cannot be told
+  apart. Fixed in the tool contract, not the parser.
+- **Mastery bands were knife-edged.** One correct answer landed exactly on a threshold that
+  seconds of decay tipped across, so the dashboard called a skill "shaky" right after the
+  student got it right.
+- **A line silently did not draw.** Clipping dropped out-of-range samples instead of
+  interpolating to the boundary, so `y = 2x + 1` on a ±4 view kept one point and vanished.
+- **Gemini rejected every turn** once the new specs landed. Its function-calling schema is
+  an OpenAPI 3.0 subset with no `oneOf`, `const` or tuple `items`, and it names nothing in
+  the error. `assertGeminiCompatible` now fails a test instead.
+
+## Still unverified
 
 - `log_misconception` and `advance_stage` have not fired in a live session.
-- The multi-round tool loop has only been exercised at one round trip per turn.
+- The multi-round tool loop has only run at one round trip per turn.
 - The photo-of-working vision path has never been given a real photo.
 
 ## 1. Why rebuild rather than repair

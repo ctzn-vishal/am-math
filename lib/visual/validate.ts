@@ -160,26 +160,72 @@ function validateBarModel(spec: BarModelSpec): SpecIssue[] {
 
 // ---------------------------------------------------------------------------
 
+/** Net count of a tile type, positives minus negatives. */
+export function netTiles(spec: AlgebraTilesSpec, type: 'x2' | 'x' | 'unit'): number {
+  return spec.tiles
+    .filter((t) => t.type === type)
+    .reduce((sum, t) => sum + (t.sign === 'positive' ? t.count : -t.count), 0);
+}
+
 function validateAlgebraTiles(spec: AlgebraTilesSpec): SpecIssue[] {
   const issues: SpecIssue[] = [];
-  const seen = new Set<string>();
 
-  spec.tiles.forEach((tile, i) => {
-    if (seen.has(tile.id)) {
-      issues.push(err(`tiles[${i}].id`, `Duplicate tile id "${tile.id}".`));
+  const seen = new Set<string>();
+  spec.tiles.forEach((group, i) => {
+    const key = `${group.type}:${group.sign}`;
+    if (seen.has(key)) {
+      issues.push(
+        err(`tiles[${i}]`, `${group.sign} ${group.type} tiles are listed twice — combine the counts.`),
+      );
     }
-    seen.add(tile.id);
+    seen.add(key);
   });
 
-  if (spec.frame !== 'loose' && spec.tiles.length === 0) {
-    issues.push(
-      warn('tiles', `Frame is "${spec.frame}" but there are no tiles to arrange into one.`),
-    );
+  const total = spec.tiles.reduce((n, t) => n + t.count, 0);
+  if (total === 0) {
+    issues.push(err('tiles', 'The board has no tiles on it.'));
+    return issues;
+  }
+
+  if (spec.arrangement === 'square') {
+    const x2 = netTiles(spec, 'x2');
+    const x = netTiles(spec, 'x');
+
+    if (x2 !== 1) {
+      issues.push(
+        err(
+          'tiles',
+          `Completing the square starts from exactly one x² tile, but this board has ${x2}. ` +
+            `Divide through by the leading coefficient first.`,
+        ),
+      );
+    }
+
+    // An odd number of x tiles cannot split evenly across the two sides. That is not a
+    // defect — it is precisely why b/2 can be a fraction — so it warns rather than blocks.
+    if (Math.abs(x) % 2 === 1) {
+      issues.push(
+        warn(
+          'tiles',
+          `${Math.abs(x)} x-tiles cannot be split evenly across the two sides, so one has to be ` +
+            `halved. Worth showing if that is the point being made.`,
+        ),
+      );
+    }
+  }
+
+  if (spec.arrangement === 'rectangle') {
+    const x2 = netTiles(spec, 'x2');
+    if (x2 <= 0) {
+      issues.push(
+        warn('tiles', 'A factorisation rectangle normally starts from at least one x² tile.'),
+      );
+    }
   }
 
   if (spec.showZeroPairs) {
-    const hasPositive = spec.tiles.some((t) => t.sign === 'positive');
-    const hasNegative = spec.tiles.some((t) => t.sign === 'negative');
+    const hasPositive = spec.tiles.some((t) => t.sign === 'positive' && t.count > 0);
+    const hasNegative = spec.tiles.some((t) => t.sign === 'negative' && t.count > 0);
     if (!hasPositive || !hasNegative) {
       issues.push(
         warn('showZeroPairs', 'Zero pairs are switched on but the board has tiles of only one sign.'),
@@ -312,11 +358,28 @@ function validateAngleDiagram(spec: AngleDiagramSpec): SpecIssue[] {
 
 function validateCoordinatePlane(spec: CoordinatePlaneSpec): SpecIssue[] {
   const issues: SpecIssue[] = [];
-  const [x0, x1] = spec.xRange;
-  const [y0, y1] = spec.yRange;
+  const { xMin: x0, xMax: x1, yMin: y0, yMax: y1 } = spec;
 
-  if (x0 >= x1) issues.push(err('xRange', `xRange must be ascending, got [${x0}, ${x1}].`));
-  if (y0 >= y1) issues.push(err('yRange', `yRange must be ascending, got [${y0}, ${y1}].`));
+  if (x0 >= x1) issues.push(err('xMax', `xMax must be greater than xMin, got ${x0} to ${x1}.`));
+  if (y0 >= y1) issues.push(err('yMax', `yMax must be greater than yMin, got ${y0} to ${y1}.`));
+
+  // Curves are a flat shape on the wire, so the coefficients each type needs are checked
+  // here rather than by the schema. See the note on `curveSchema`.
+  spec.curves.forEach((curve, i) => {
+    if (curve.type === 'linear' && curve.m === undefined) {
+      issues.push(err(`curves[${i}].m`, 'A linear curve needs a gradient m.'));
+    }
+    if (curve.type === 'quadratic') {
+      if (curve.a === undefined) {
+        issues.push(err(`curves[${i}].a`, 'A quadratic needs an x² coefficient a.'));
+      } else if (curve.a === 0) {
+        issues.push(err(`curves[${i}].a`, 'A quadratic with a = 0 is a straight line — use type "linear".'));
+      }
+      if (curve.b === undefined) {
+        issues.push(err(`curves[${i}].b`, 'A quadratic needs an x coefficient b.'));
+      }
+    }
+  });
 
   const xSteps = (x1 - x0) / spec.gridStep;
   if (xSteps > 60) {
@@ -331,9 +394,7 @@ function validateCoordinatePlane(spec: CoordinatePlaneSpec): SpecIssue[] {
     if (!curve) {
       issues.push(err('slopeTriangle.curveIndex', `No curve at index ${curveIndex}.`));
     } else if (curve.type !== 'linear') {
-      issues.push(
-        warn('slopeTriangle', 'Slope triangles read clearly only on a straight line.'),
-      );
+      issues.push(warn('slopeTriangle', 'Slope triangles read clearly only on a straight line.'));
     }
     if (approxEqual(fromX, toX)) {
       issues.push(err('slopeTriangle', 'Slope triangle has zero run.'));

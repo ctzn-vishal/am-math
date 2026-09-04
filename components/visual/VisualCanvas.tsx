@@ -3,13 +3,23 @@
 import type { VisualSpec } from '@/lib/visual/spec';
 import { VISUAL_KINDS } from '@/lib/visual/registry';
 import { BarModel } from './BarModel';
+import { AlgebraTiles } from './AlgebraTiles';
+import { AreaGrid } from './AreaGrid';
+import { CrossFrame } from './CrossFrame';
+import { AngleDiagram } from './AngleDiagram';
+import { CoordinatePlane } from './CoordinatePlane';
+import { SolidNet } from './SolidNet';
+import { StatPlot } from './StatPlot';
 
 /**
  * Dispatches a spec to its renderer.
  *
- * The unimplemented branch is a real UI state, not a crash: the registry stops the tutor
- * emitting these, but a spec can also arrive from stored history written before a renderer
- * was removed, and a student should see an honest placeholder rather than a blank panel.
+ * `onChange` is only offered where direct manipulation genuinely helps. Dragging a bar
+ * changes what the model claims; dragging a point on a parabola would just be fiddling with
+ * a picture of a function, so those kinds are read-only until there is a reason otherwise.
+ *
+ * The fallback branch is a real UI state rather than a crash: a spec stored before a
+ * renderer changed should show an honest placeholder, not a blank panel.
  */
 
 export interface VisualCanvasProps {
@@ -27,8 +37,29 @@ export function VisualCanvas({ spec, onChange }: VisualCanvasProps) {
         />
       );
 
+    case 'algebra_tiles':
+      return <AlgebraTiles spec={spec} />;
+
+    case 'area_grid':
+      return <AreaGrid spec={spec} />;
+
+    case 'cross_frame':
+      return <CrossFrame spec={spec} />;
+
+    case 'angle_diagram':
+      return <AngleDiagram spec={spec} />;
+
+    case 'coordinate_plane':
+      return <CoordinatePlane spec={spec} />;
+
+    case 'solid_net':
+      return <SolidNet spec={spec} />;
+
+    case 'stat_plot':
+      return <StatPlot spec={spec} />;
+
     default:
-      return <NotYetDrawable kind={spec.kind} />;
+      return <NotYetDrawable kind={(spec as { kind: string }).kind} />;
   }
 }
 

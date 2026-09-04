@@ -238,8 +238,10 @@ describe('coordinate_plane', () => {
   it('rejects a slope triangle pointing at a curve that does not exist', () => {
     const errors = errorsOf({
       kind: 'coordinate_plane',
-      xRange: [-5, 5],
-      yRange: [-5, 5],
+      xMin: -5,
+      xMax: 5,
+      yMin: -5,
+      yMax: 5,
       curves: [{ type: 'linear', m: 2, c: 1 }],
       slopeTriangle: { curveIndex: 3, fromX: 0, toX: 2 },
     });
@@ -263,18 +265,17 @@ describe('angle_diagram', () => {
 });
 
 describe('parseVisualSpec gate', () => {
-  it('refuses a kind that has no renderer yet', () => {
+  it('has a renderer for every kind in the union', () => {
+    // Phase 2 landed the remaining seven, so the "no renderer yet" branch of the gate is
+    // now unreachable in production. It stays as the guard for the next kind added to
+    // spec.ts before its renderer exists, and this asserts we are not in that state.
     const outcome = parseVisualSpec({
       kind: 'area_grid',
       columns: ['x', '+3'],
       rows: ['x', '+2'],
       cells: ['x^2', '3x', '2x', '6'],
     });
-    expect(outcome.ok).toBe(false);
-    if (!outcome.ok) {
-      expect(outcome.issues[0]?.message).toContain('no renderer yet');
-      expect(outcome.issues[0]?.message).toContain('bar_model');
-    }
+    expect(outcome.ok).toBe(true);
   });
 
   it('passes a sound bar model and surfaces no warnings', () => {

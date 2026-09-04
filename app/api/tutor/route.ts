@@ -39,11 +39,30 @@ const MAX_IMAGE = 5_600_000;
 /**
  * Guard against a leaked deployment URL spending the API quota for strangers. Not an auth
  * system — a single-student build does not need one — but the key is worth this much.
+ *
+ * Fails closed in production. An unset secret on a public deployment is the one
+ * configuration where "carry on regardless" costs real money, so a missing secret there is
+ * a refusal rather than a bypass; locally, where the app is not reachable from outside,
+ * an unset secret means no guard.
  */
-function authorised(request: Request): boolean {
+function authorised(request: Request): { ok: true } | { ok: false; reason: string } {
   const secret = process.env.TUTOR_ACCESS_SECRET;
-  if (!secret) return true; // Unset means local development.
-  return request.headers.get('x-tutor-secret') === secret;
+
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      return {
+        ok: false,
+        reason:
+          'TUTOR_ACCESS_SECRET is not set on this deployment, so the tutor is disabled. Set it ' +
+          'in the environment to enable it.',
+      };
+    }
+    return { ok: true };
+  }
+
+  return request.headers.get('x-tutor-secret') === secret
+    ? { ok: true }
+    : { ok: false, reason: 'Not authorised.' };
 }
 
 export async function POST(request: Request): Promise<Response> {
