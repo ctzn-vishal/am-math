@@ -1,4 +1,6 @@
 node_modules/
+.next/
+out/
 build/
 dist/
 coverage/
@@ -6,3 +8,12 @@ coverage/
 *.log
 .env*
 !.env.example
+next-env.d.ts
+*.tsbuildinfo
+
+# Local SQLite database and its write-ahead log
+*.db
+*.db-*
+
+# Legacy AI Studio scaffold, kept only as input to scripts/port-curriculum.mjs
+.keep/

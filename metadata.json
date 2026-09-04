@@ -1,6 +1,0 @@
-{
-  "name": "The Singapore Math Sage",
-  "description": "An interactive Class 8 / Secondary 2 Singapore Math AI tutor specializing in the Concrete-Pictorial-Abstract (CPA) pedagogy and Socratic guidance.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
