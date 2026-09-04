@@ -7,8 +7,11 @@ import { UNLOCK_COOKIE, safeEqual, unlockToken } from '@/lib/auth-shared';
  * Doing it here rather than per-route means a new page cannot accidentally ship
  * unprotected — the default is closed, and `/unlock` is the one deliberate exception.
  *
+ * This is Next 16's `proxy` convention, which replaced `middleware`. Same behaviour, and
+ * the old name is deprecated.
+ *
  * Imports from `auth-shared`, not `auth`: this runs on the edge runtime, where pulling in
- * anything that touches `node:crypto` fails the whole middleware at module load.
+ * anything that touches `node:crypto` fails the whole file at module load.
  */
 
 export const config = {
@@ -16,7 +19,7 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
 
-export async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const secret = process.env.TUTOR_ACCESS_SECRET;
 
   // No secret set. Locally that means no gate; in production it is a misconfiguration, and

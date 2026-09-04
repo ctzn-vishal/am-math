@@ -2,15 +2,9 @@ import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import * as schema from './schema';
 
-/**
- * One connection, reused across hot reloads. Next.js re-evaluates modules on every edit in
- * development, so without the global cache each save would open another libsql client and
- * leak file handles until the dev server fell over.
- */
+type Database = ReturnType<typeof drizzle<typeof schema>>;
 
-const globalForDb = globalThis as unknown as {
-  __sageDb?: ReturnType<typeof drizzle<typeof schema>>;
-};
+const globalForDb = globalThis as unknown as { __sageDb?: Database };
 
 /**
  * Resolve the database connection.
@@ -30,7 +24,7 @@ export function resolveDatabaseConfig(env: NodeJS.ProcessEnv = process.env): {
   return { url, authToken, isLocalFile: url.startsWith('file:') };
 }
 
-function create() {
+function create(): Database {
   const { url, authToken, isLocalFile } = resolveDatabaseConfig();
 
   // A serverless filesystem is ephemeral and mostly read-only, so a `file:` database on a
@@ -47,9 +41,35 @@ function create() {
   return drizzle(createClient({ url, ...(authToken ? { authToken } : {}) }), { schema });
 }
 
-export const db = globalForDb.__sageDb ?? create();
+function connection(): Database {
+  const existing = globalForDb.__sageDb;
+  if (existing) return existing;
 
-if (process.env.NODE_ENV !== 'production') globalForDb.__sageDb = db;
+  const created = create();
+  // Cached in both environments, but for different reasons: in development because Next
+  // re-evaluates modules on every edit and would otherwise leak a client per save, and in
+  // production because a warm lambda should reuse its connection.
+  globalForDb.__sageDb = created;
+  return created;
+}
+
+/**
+ * Connects on first use, not at import.
+ *
+ * This is lazy for a specific reason. Next's build collects page data by importing every
+ * route in a production environment, with none of the runtime environment variables set —
+ * so an eager connection made the guard above fire during `next build` and failed the
+ * deploy before it could ever read its own configuration. A missing database should be a
+ * request-time error, not a build-time one.
+ */
+export const db = new Proxy({} as Database, {
+  get(_target, property, receiver) {
+    return Reflect.get(connection() as object, property, receiver);
+  },
+  has(_target, property) {
+    return Reflect.has(connection() as object, property);
+  },
+});
 
 export { schema };
 export * from './schema';

@@ -1,7 +1,7 @@
 /**
  * The parts of the unlock gate that must run on the edge runtime.
  *
- * Kept apart from `lib/auth` because the middleware runs on the edge, where `node:crypto`
+ * Kept apart from `lib/auth` because `proxy.ts` runs on the edge, where `node:crypto`
  * does not exist — and importing a module is enough to pull it in, even if only a constant
  * is used. Everything here is Web Crypto and plain constants, so it loads anywhere.
  */
