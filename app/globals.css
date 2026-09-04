@@ -1,0 +1,218 @@
+@import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
+
+/*
+ * A warm paper palette rather than the usual product blue-grey. This is a place to think
+ * in for an hour at a time, and it should feel closer to a good notebook than to a
+ * dashboard. Sage carries structure, clay carries the student's own marks and anything
+ * needing attention.
+ */
+
+@theme {
+  --font-sans: var(--font-ui), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: var(--font-reading), ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+
+  /* Paper */
+  --color-paper: #faf9f4;
+  --color-surface: #ffffff;
+  --color-surface-sunk: #f2f1e8;
+
+  /* Ink */
+  --color-ink: #26261f;
+  --color-ink-soft: #56564a;
+  --color-ink-faint: #8a8a7a;
+
+  /* Structure */
+  --color-line: #e4e2d5;
+  --color-line-strong: #cfccba;
+
+  /* Sage — the tutor's colour, and structural emphasis */
+  --color-sage-50: #f2f4ec;
+  --color-sage-100: #e2e7d6;
+  --color-sage-200: #c8d1b3;
+  --color-sage-400: #8b9a6b;
+  --color-sage-500: #6d7d4e;
+  --color-sage-600: #55663c;
+  --color-sage-700: #414f2e;
+
+  /* Clay — the student's colour, and anything that wants a second look */
+  --color-clay-100: #f7e6d8;
+  --color-clay-300: #e0b088;
+  --color-clay-500: #c07742;
+  --color-clay-600: #a25f30;
+
+  /* Signals. Muted on purpose: a wrong answer is information, not an alarm. */
+  --color-affirm: #4a7c59;
+  --color-affirm-soft: #e3efe5;
+  --color-query: #b4762a;
+  --color-query-soft: #f8ecd9;
+  --color-fault: #a4483d;
+  --color-fault-soft: #f6e3e0;
+}
+
+:root {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --color-paper: #14140f;
+    --color-surface: #1c1c16;
+    --color-surface-sunk: #12120d;
+
+    --color-ink: #eceadf;
+    --color-ink-soft: #b0ae9f;
+    --color-ink-faint: #7d7b6d;
+
+    --color-line: #2e2e25;
+    --color-line-strong: #45443a;
+
+    --color-sage-50: #1e2418;
+    --color-sage-100: #2a3321;
+    --color-sage-200: #3d4a30;
+    --color-sage-400: #8fa06c;
+    --color-sage-500: #a3b581;
+    --color-sage-600: #b9c99a;
+    --color-sage-700: #cedcb4;
+
+    --color-clay-100: #3a2617;
+    --color-clay-300: #8a5a33;
+    --color-clay-500: #d19660;
+    --color-clay-600: #e0b088;
+
+    --color-affirm: #7fb08c;
+    --color-affirm-soft: #1d2a20;
+    --color-query: #d9a45e;
+    --color-query-soft: #2e2416;
+    --color-fault: #d18b80;
+    --color-fault-soft: #2e1c19;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-paper: #14140f;
+  --color-surface: #1c1c16;
+  --color-surface-sunk: #12120d;
+
+  --color-ink: #eceadf;
+  --color-ink-soft: #b0ae9f;
+  --color-ink-faint: #7d7b6d;
+
+  --color-line: #2e2e25;
+  --color-line-strong: #45443a;
+
+  --color-sage-50: #1e2418;
+  --color-sage-100: #2a3321;
+  --color-sage-200: #3d4a30;
+  --color-sage-400: #8fa06c;
+  --color-sage-500: #a3b581;
+  --color-sage-600: #b9c99a;
+  --color-sage-700: #cedcb4;
+
+  --color-clay-100: #3a2617;
+  --color-clay-300: #8a5a33;
+  --color-clay-500: #d19660;
+  --color-clay-600: #e0b088;
+
+  --color-affirm: #7fb08c;
+  --color-affirm-soft: #1d2a20;
+  --color-query: #d9a45e;
+  --color-query-soft: #2e2416;
+  --color-fault: #d18b80;
+  --color-fault-soft: #2e1c19;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* KaTeX sits a touch large against the body text at its default scale. */
+.katex {
+  font-size: 1.04em;
+}
+
+.katex-display {
+  margin: 0.9em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.15em 0;
+}
+
+/* Prose inside a tutor message. Tight, because the tutor should be brief. */
+.tutor-prose > * + * {
+  margin-top: 0.7em;
+}
+
+.tutor-prose strong {
+  font-weight: 600;
+  color: var(--color-sage-700);
+}
+
+.tutor-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--color-surface-sunk);
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+}
+
+.tutor-prose ul,
+.tutor-prose ol {
+  padding-left: 1.25em;
+  list-style: revert;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: rise 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-pulse-soft {
+    animation: none;
+  }
+}
+
+/* Scrollbars that do not shout. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
