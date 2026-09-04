@@ -288,4 +288,37 @@ export const exponentsProblems: Problem[] = [
       'exponents.coefficient-out-of-range',
     ],
   },
+  {
+    id: 'exponents.magnitude-ratio',
+    skillIds: ['exponents.compare-orders-magnitude'],
+    difficulty: 'basic',
+    statement:
+      'The mass of the Earth is about $6 \\times 10^{24}$ kg and the mass of the Moon is about ' +
+      '$7.3 \\times 10^{22}$ kg. Roughly how many times more massive is the Earth than the Moon? ' +
+      'Give your answer to the nearest whole number.',
+    answer: { type: 'number', value: 82, tolerance: 1 },
+    cpaPrompts: {
+      concrete:
+        'Two stacks of place-value discs, one for each mass. Before doing any arithmetic: how ' +
+        'many more columns does the Earth stack reach than the Moon stack? What does each extra ' +
+        'column multiply by?',
+      pictorial:
+        'Put both masses on a logarithmic number line where each step is a factor of ten. How ' +
+        'many steps apart are $10^{22}$ and $10^{24}$? Now allow for the coefficients.',
+      abstract:
+        'Divide: $\\frac{6 \\times 10^{24}}{7.3 \\times 10^{22}} = \\frac{6}{7.3} \\times 10^{2}$.',
+    },
+    hints: [
+      'Compare the powers of ten first. $10^{24}$ against $10^{22}$ — how many times bigger is ' +
+        'that, before you look at the 6 and the 7.3?',
+      'Two steps in the exponent is a factor of $100$, not a factor of 2. Now divide the ' +
+        'coefficients: $6 \\div 7.3$.',
+      'Multiply $\\frac{6}{7.3} \\approx 0.82$ by $100$.',
+    ],
+    solution:
+      '$$\\frac{6 \\times 10^{24}}{7.3 \\times 10^{22}} = \\frac{6}{7.3} \\times 10^{24 - 22} ' +
+      '\\approx 0.82 \\times 100 \\approx 82.$$\n\nThe Earth is about 82 times as massive as the ' +
+      'Moon — two orders of magnitude, trimmed a little by the coefficients.',
+    misconceptionCodes: ['exponents.linear-magnitude'],
+  },
 ];

@@ -222,4 +222,36 @@ export const linearSystemsProblems: Problem[] = [
       'linear-systems.unchecked-answer',
     ],
   },
+  {
+    id: 'linear-systems.write-the-equations',
+    skillIds: ['linear-systems.model-real-world-relationships'],
+    difficulty: 'basic',
+    statement:
+      'A bakery sells loaves for $\\$l$ each and rolls for $\\$r$ each. One customer buys 2 ' +
+      'loaves and 6 rolls for $\\$13$; another buys 1 loaf and 3 rolls. Write an equation for ' +
+      'the first purchase, then state the two coefficients in it — the number multiplying $l$ ' +
+      'and the number multiplying $r$ — as a pair.',
+    answer: { type: 'coordinates', x: 2, y: 6, tolerance: 0 },
+    cpaPrompts: {
+      concrete:
+        "Put the first customer's shopping on a balance pan: how many loaf-cups and how many " +
+        'roll-cups? On the other pan, 13 one-dollar weights. What does it mean that the pans level?',
+      pictorial:
+        'Draw one bar for the first purchase: blocks for each loaf, blocks for each roll, and a ' +
+        'brace over the whole bar reading 13. How many blocks of each kind are there?',
+      abstract:
+        'One equation per sentence of the form $al + br = c$, where $a$ counts loaves and $b$ ' +
+        'counts rolls.',
+    },
+    hints: [
+      'What does $l$ stand for — a loaf, or the price of one loaf in dollars? What is $2l$ then?',
+      'Two loaves cost $2l$ dollars and six rolls cost $6r$ dollars. Together they came to 13.',
+    ],
+    solution:
+      'Let $l$ and $r$ be the prices in dollars of one loaf and one roll. The first purchase ' +
+      'gives\n\n$$2l + 6r = 13.$$\n\nThe coefficients are $2$ (loaves) and $6$ (rolls). The second ' +
+      "customer's purchase, $l + 3r$, is exactly half of the first — so no total is needed to " +
+      'know it cost $\\$6.50$.',
+    misconceptionCodes: ['linear-systems.variable-as-label'],
+  },
 ];

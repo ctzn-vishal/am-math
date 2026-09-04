@@ -263,4 +263,34 @@ export const expansionProblems: Problem[] = [
       'expansion.factorise-incompletely',
     ],
   },
+  {
+    id: 'expansion.expand-binomial-product',
+    skillIds: ['expansion.expand-products-algebraic'],
+    difficulty: 'basic',
+    statement:
+      'Expand and simplify $(2x + 3)(x - 4)$. Then state the coefficient of $x$ in your answer.',
+    answer: { type: 'number', value: -5, tolerance: 0 },
+    cpaPrompts: {
+      concrete:
+        'Lay out a rectangle of tiles that is $2x + 3$ along the top and $x - 4$ down the side. ' +
+        'Which tiles are negative? Are there any zero pairs to remove?',
+      pictorial:
+        'Draw a $2 \\times 2$ area grid with $2x$ and $+3$ across the top and $x$ and $-4$ down ' +
+        'the side. Fill in all four cells. Which two cells are like terms?',
+      abstract:
+        'Every term in the first bracket multiplies every term in the second — four products — ' +
+        'then collect the two $x$ terms.',
+    },
+    hints: [
+      'Each term in the first bracket has to meet each term in the second. How many products ' +
+        'does that make?',
+      'The four products are $2x \\cdot x$, $2x \\cdot (-4)$, $3 \\cdot x$ and $3 \\cdot (-4)$. ' +
+        'Work each out with its sign.',
+      'Collect the two $x$ terms: $-8x + 3x$.',
+    ],
+    solution:
+      '$$(2x + 3)(x - 4) = 2x^2 - 8x + 3x - 12 = 2x^2 - 5x - 12.$$\n\nThe coefficient of $x$ ' +
+      'is $-5$.',
+    misconceptionCodes: ['expansion.partial-distribution'],
+  },
 ];

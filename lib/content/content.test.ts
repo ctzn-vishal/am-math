@@ -45,10 +45,8 @@ describe('dimensions-g8 pack', () => {
 describe('authored units', () => {
   const authored = [...AUTHORED_UNITS];
 
-  it('covers the first four units of the course', () => {
-    expect(authored.sort()).toEqual(
-      ['exponents', 'expansion', 'linear-systems', 'quadratic-factorisation'].sort(),
-    );
+  it('covers every unit of the course', () => {
+    expect(authored.sort()).toEqual(getPack().units.map((u) => u.id).sort());
   });
 
   /**
@@ -113,16 +111,10 @@ describe('authored units', () => {
     });
   }
 
-  it('leaves the remaining units honestly marked as unported', () => {
-    const ported = getPack().units.filter((u) => !AUTHORED_UNITS.has(u.id));
-    expect(ported.length).toBe(10);
-
-    // Their skills should still share inherited notes — that is what the dashboard warns about.
-    const shared = ported.filter((u) => {
-      const skills = skillsOfUnit(u.id);
-      return skills.length > 1 && new Set(skills.map((s) => s.cpa.concrete)).size === 1;
-    });
-    expect(shared.length).toBe(ported.length);
+  it('gives every skill at least one problem it can be marked on', () => {
+    for (const skill of getPack().skills) {
+      expect(problemsForSkill(skill.id).length, `${skill.id} has no problems`).toBeGreaterThan(0);
+    }
   });
 });
 

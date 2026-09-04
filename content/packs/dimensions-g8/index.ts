@@ -7,6 +7,16 @@ import {
   quadraticFactorisationSkills,
   quadraticFactorisationProblems,
 } from './quadratic-factorisation';
+import { algebraicFractionsSkills, algebraicFractionsProblems } from './algebraic-fractions';
+import { congruenceSkills, congruenceProblems } from './congruence';
+import { parallelAnglesSkills, parallelAnglesProblems } from './parallel-angles';
+import { functionGraphsSkills, functionGraphsProblems } from './function-graphs';
+import { practicalGraphsSkills, practicalGraphsProblems } from './practical-graphs';
+import { pythagorasSkills, pythagorasProblems } from './pythagoras';
+import { coordinateGeometrySkills, coordinateGeometryProblems } from './coordinate-geometry';
+import { mensurationSkills, mensurationProblems } from './mensuration';
+import { dataAnalysisSkills, dataAnalysisProblems } from './data-analysis';
+import { quadraticMethodsSkills, quadraticMethodsProblems } from './quadratic-methods';
 
 /**
  * Assembles the pack: the mechanically ported skeleton, with hand-authored units laid over
@@ -25,12 +35,26 @@ import {
  * The one-shot script that produced it has been removed along with its input.
  */
 
-/** Units that have had the full authoring pass: per-skill CPA notes, real probes, marked problems. */
+/**
+ * Units that have had the full authoring pass: per-skill CPA notes, real probes, marked
+ * problems. All fourteen now; the set is kept because `content.test.ts` holds every member
+ * to the standard, and any future unit must earn its place here the same way.
+ */
 export const AUTHORED_UNITS = new Set([
   'exponents',
   'linear-systems',
   'expansion',
   'quadratic-factorisation',
+  'algebraic-fractions',
+  'congruence',
+  'parallel-angles',
+  'function-graphs',
+  'practical-graphs',
+  'pythagoras',
+  'coordinate-geometry',
+  'mensuration',
+  'data-analysis',
+  'quadratic-methods',
 ]);
 
 const authoredSkills = [
@@ -38,6 +62,16 @@ const authoredSkills = [
   ...linearSystemsSkills,
   ...expansionSkills,
   ...quadraticFactorisationSkills,
+  ...algebraicFractionsSkills,
+  ...congruenceSkills,
+  ...parallelAnglesSkills,
+  ...functionGraphsSkills,
+  ...practicalGraphsSkills,
+  ...pythagorasSkills,
+  ...coordinateGeometrySkills,
+  ...mensurationSkills,
+  ...dataAnalysisSkills,
+  ...quadraticMethodsSkills,
 ];
 
 const authoredProblems = [
@@ -45,6 +79,16 @@ const authoredProblems = [
   ...linearSystemsProblems,
   ...expansionProblems,
   ...quadraticFactorisationProblems,
+  ...algebraicFractionsProblems,
+  ...congruenceProblems,
+  ...parallelAnglesProblems,
+  ...functionGraphsProblems,
+  ...practicalGraphsProblems,
+  ...pythagorasProblems,
+  ...coordinateGeometryProblems,
+  ...mensurationProblems,
+  ...dataAnalysisProblems,
+  ...quadraticMethodsProblems,
 ];
 
 const authoredSkillIds = new Set(authoredSkills.map((s) => s.id));
