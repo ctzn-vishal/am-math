@@ -6,21 +6,33 @@ Supersedes the AI Studio scaffold at commit `d7e2ac3`. Building on branch `rebui
 
 | Phase | State |
 | --- | --- |
-| 0 — Foundation | Done. Next.js 16, SQLite + Drizzle with auto-migration, skill-graph content layer, 124 tests. |
-| 1 — Vertical slice | Mostly done. Streaming tutor loop, `render_bar_model` tool, interactive bar model, student → tutor spec round trip, unit 2 authored. **Not yet run against a live Gemini key** — see below. |
+| 0 — Foundation | Done. Next.js 16, SQLite + Drizzle with auto-migration, skill-graph content layer. |
+| 1 — Vertical slice | **Done and verified live.** Streaming tutor loop, `render_bar_model`, interactive bar model, student → tutor spec round trip, unit 2 authored, evidence recorded end to end. |
 | 2 — Breadth | Not started. 7 remaining renderers, 13 units to author. |
 | 3 — Student model | Model and estimator done and tested; no progress UI beyond the dashboard bands. |
 | 4 — Multimodal | Photo upload path is wired end to end but unexercised. Voice not started. |
 | 5 — Polish | Not started. |
 
-### Known gap
+129 tests.
 
-Everything downstream of `ai.interactions.create` is written against the SDK's type
-definitions and the published API docs, not against a live response. The tool round-trip
-loop, the streaming event names, and — most importantly — whether the tutor actually
-*behaves* the way the prompt asks (draws often, refuses to hand over answers, calls
-`check_answer` before praising) are all unverified. First run with a real key is the next
-thing to do, and should be treated as a debugging session, not a demo.
+### What the first live run showed
+
+The loop worked on the first turn. Asked "I don't know where to start", the model called
+`render_bar_model` with a spec that passed validation — both receipts drawn on one shared
+scale, the second doubled — and then asked what the leftover strip was made of rather than
+answering. Given a right answer it called `check_answer` before saying anything about
+correctness, and at the concrete stage it reached for the balance scale from the authored
+CPA notes rather than inventing its own metaphor. The prompt is doing its job.
+
+Three fixes came out of it, all recorded in `06654e8`: the `check_answer` contract (pass the
+committed values, not the whole message), knife-edge mastery bands, and a tablet layout
+where the canvas could push the input off screen.
+
+### Still unverified
+
+- `log_misconception` and `advance_stage` have not fired in a live session.
+- The multi-round tool loop has only been exercised at one round trip per turn.
+- The photo-of-working vision path has never been given a real photo.
 
 ## 1. Why rebuild rather than repair
 
