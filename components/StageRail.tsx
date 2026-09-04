@@ -38,7 +38,7 @@ export function StageRail({ stage }: { stage: CpaStage }) {
               aria-current={active ? 'step' : undefined}
               className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 active
-                  ? 'bg-sage-500 text-white'
+                  ? 'bg-sage-500 text-paper'
                   : passed
                     ? 'bg-sage-100 text-sage-700'
                     : 'text-ink-faint'

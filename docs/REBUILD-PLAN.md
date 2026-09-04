@@ -8,12 +8,12 @@ Supersedes the AI Studio scaffold at commit `d7e2ac3`. Building on branch `rebui
 | --- | --- |
 | 0 — Foundation | Done. Next.js 16, Turso (libsql) + Drizzle with auto-migration, skill-graph content layer. |
 | 1 — Vertical slice | Done and verified live. Streaming tutor loop, interactive bar model, student → tutor spec round trip, unit 2 authored, evidence recorded end to end. |
-| 2 — Breadth | Renderers done, all eight verified live. Units 1–4 authored; **10 units still mechanically ported**. |
-| 3 — Student model | Model and estimator done and tested; no progress UI beyond the dashboard bands. |
+| 2 — Breadth | Done. Renderers verified live; all 14 units authored with 46 marked problems. |
+| 3 — Student model | Model and estimator done and tested. Hint counting is exact (`give_hint`). Dashboard shows resume cards and started/secure counts; no per-skill history view yet. |
 | 4 — Multimodal | Photo upload path is wired end to end but unexercised. Voice not started. |
 | 5 — Polish | Not started. |
 
-179 tests.
+239 tests.
 
 ## Deployment
 
@@ -47,11 +47,25 @@ Four fixes came out of running it rather than reading it:
   an OpenAPI 3.0 subset with no `oneOf`, `const` or tuple `items`, and it names nothing in
   the error. `assertGeminiCompatible` now fails a test instead.
 
+## Verified live on 2026-09-04
+
+`give_hint`, `check_answer` and `advance_stage` all fired in one live session against the
+deployed database, and the verdict, hint count and stage survived a reload. Two bugs came
+out of that run, both invisible to the tests: the lesson component kept its initial state
+across a problem switch (fixed by keying it on the problem), and the tutor route carried an
+authorisation check that could never fail (removed; the proxy is the gate).
+
 ## Still unverified
 
-- `log_misconception` and `advance_stage` have not fired in a live session.
-- The multi-round tool loop has only run at one round trip per turn.
+- `log_misconception` has not fired in a live session.
 - The photo-of-working vision path has never been given a real photo.
+- The *Next problem* transition has been exercised, but not a full second problem after it.
+
+## Known limitation
+
+`npm run dev` with Turso credentials in `.env.local` talks to the **live** database. There
+is no separate development database, so any lesson started locally appears on the deployed
+dashboard. Use `DATABASE_URL="file:./sage.db"` and unset the Turso variables to work offline.
 
 ## 1. Why rebuild rather than repair
 

@@ -5,7 +5,7 @@ import { parseVisualSpec } from '@/lib/visual/registry';
 import type { VisualSpec } from '@/lib/visual/spec';
 import { validateSpec, type SpecIssue } from '@/lib/visual/validate';
 import { checkAnswer, type CheckResult } from './check';
-import { buildLessonContext, SYSTEM_INSTRUCTION, type LessonContext } from './prompt';
+import { buildLessonContext, buildTurnState, SYSTEM_INSTRUCTION, type LessonContext } from './prompt';
 import { buildTools, kindFromToolName } from './tools';
 
 /**
@@ -33,6 +33,8 @@ export type TutorEvent =
   | { type: 'answer_checked'; problemId: string; response: string; result: CheckResult }
   | { type: 'stage_changed'; stage: CpaStage; reason: string }
   | { type: 'misconception'; code: string; evidence: string }
+  /** The tutor spent a hint. `hintsUsed` is the running total after this one. */
+  | { type: 'hint_given'; hintNumber: number; hintsUsed: number }
   | { type: 'done'; interactionId: string | null }
   | { type: 'error'; message: string };
 
@@ -54,8 +56,14 @@ export interface TurnInput {
   problem?: Problem;
   hintsUsed: number;
   priorMisconceptionCodes: string[];
-  /** Set when the lesson context should be resent — first turn, or after a stage change. */
+  /**
+   * Set when the full lesson brief should be sent — first turn, or after the problem changed.
+   * Otherwise a one-line state update goes instead, so hint counts and stage stay current
+   * without repeating the whole brief.
+   */
   includeLessonContext: boolean;
+  /** The scripted opening the student has already seen, so the model knows what it "said". */
+  openingMessage?: string;
 }
 
 let client: GoogleGenAI | null = null;
@@ -108,6 +116,7 @@ export interface ToolOutcome {
   events: TutorEvent[];
   /** Side effects for the caller to persist. */
   stageChange?: { stage: CpaStage; reason: string };
+  hintGiven?: { hintNumber: number };
 }
 
 /** Exported for testing: this is where every tool's contract with the model is enforced. */
@@ -221,6 +230,50 @@ export function executeTool(
     };
   }
 
+  if (name === 'give_hint') {
+    const requested = Number(args['hint_number'] ?? 0);
+    const hints = input.problem?.hints ?? [];
+    const next = input.hintsUsed + 1;
+
+    if (hints.length === 0) {
+      return { payload: { error: 'The current problem has no hints.' }, isError: true, events: [] };
+    }
+
+    if (next > hints.length) {
+      return {
+        payload: {
+          error:
+            `All ${hints.length} hints have been spent. Narrow the question instead, or go ` +
+            'back a stage.',
+        },
+        isError: true,
+        events: [],
+      };
+    }
+
+    if (!Number.isInteger(requested) || requested !== next) {
+      return {
+        payload: {
+          error: `Hints are spent in order. ${input.hintsUsed} spent so far, so the next is hint ${next}.`,
+        },
+        isError: true,
+        events: [],
+      };
+    }
+
+    return {
+      payload: {
+        hint_number: next,
+        hint: hints[next - 1],
+        remaining: hints.length - next,
+        note: 'Turn this into a question rather than reading it out.',
+      },
+      isError: false,
+      events: [{ type: 'hint_given', hintNumber: next, hintsUsed: next }],
+      hintGiven: { hintNumber: next },
+    };
+  }
+
   return { payload: { error: `Unknown tool "${name}".` }, isError: true, events: [] };
 }
 
@@ -229,9 +282,12 @@ export function executeTool(
 function buildInitialInput(input: TurnInput): unknown {
   const content: Array<Record<string, unknown>> = [];
 
-  if (input.includeLessonContext) {
-    content.push({ type: 'text', text: buildLessonContext(input as LessonContext) });
-  }
+  content.push({
+    type: 'text',
+    text: input.includeLessonContext
+      ? buildLessonContext(input as LessonContext)
+      : buildTurnState(input as LessonContext),
+  });
 
   if (input.imageDataUrl) {
     const match = /^data:(image\/[a-zA-Z+.-]+);base64,(.+)$/.exec(input.imageDataUrl);
@@ -285,10 +341,11 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<TutorEvent> {
     return;
   }
 
-  const tools = buildTools(input.skill);
+  const tools = buildTools(input.skill, input.problem);
   let nextInput: unknown = buildInitialInput(input);
   let previousInteractionId = input.previousInteractionId ?? undefined;
   let stage = input.stage;
+  let hintsUsed = input.hintsUsed;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const calls = new Map<number, PendingCall>();
@@ -382,10 +439,11 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<TutorEvent> {
 
     for (const call of calls.values()) {
       const args = resolveArguments(call);
-      const outcome = executeTool(call.name, args, { ...input, stage });
+      const outcome = executeTool(call.name, args, { ...input, stage, hintsUsed });
 
       for (const event of outcome.events) yield event;
       if (outcome.stageChange) stage = outcome.stageChange.stage;
+      if (outcome.hintGiven) hintsUsed = outcome.hintGiven.hintNumber;
 
       results.push({
         type: 'function_result',

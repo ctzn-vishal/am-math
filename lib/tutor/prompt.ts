@@ -78,7 +78,22 @@ were given. Not for ordinary slips. Log it when the underlying belief is wrong, 
 is what steers their future practice.
 
 **advance_stage** — move between concrete, pictorial and abstract. Call it when the student
-has shown they are ready, not when you have finished talking about a stage.
+has shown they are ready, not when you have finished talking about a stage. Going back is
+often the right move when they are stuck.
+
+**give_hint** — spend the next scaffolding hint on the current problem. Call it *before*
+giving away anything a hint contains. Hints are the currency of the lesson: each one spent
+makes the eventual correct answer count for less, so they must be recorded, and you should
+try a narrower question before spending one.
+
+# The shape of a lesson
+
+You will usually have a problem in front of you. The arc is: the student says what is going
+on in the problem in their own words; you draw it; they work at it with you asking, not
+telling; they commit to a value; you call check_answer; you deal with the result. When
+check_answer returns correct, say so plainly, ask one question that makes them say *why* it
+worked, and stop. Do not pose a new problem of your own — the app hands them the next one.
+If they ask what to do next after solving it, tell them to press "Next problem".
 
 # Formatting
 
@@ -98,6 +113,39 @@ export interface LessonContext {
   hintsUsed: number;
   /** Misconceptions this student has shown before on this skill. */
   priorMisconceptionCodes: string[];
+  /** The scripted opening the student has already seen, so the model knows what it "said". */
+  openingMessage?: string;
+}
+
+/**
+ * The first thing the student sees. Written here rather than spent as a model turn — the
+ * first thing on screen should be instant and the same every time — and shared with the
+ * model in the brief so it knows what it has already said.
+ */
+export function openingMessage(skill: SkillNode, problem: Problem | undefined): string {
+  return (
+    `We're looking at **${skill.title.toLowerCase()}**.\n\n` +
+    (problem
+      ? `Have a read of the problem on the left. Before working anything out — what is ` +
+        `actually going on in it? Describe it to me in your own words.`
+      : `Where would you like to start? Tell me what you already know about this, ` +
+        `even if it is not much.`)
+  );
+}
+
+/**
+ * The one-line update sent on turns that do not carry the full brief. The model keeps the
+ * conversation server-side, but hint counts and stage move between turns and it has to be
+ * told; without this it would keep working from the brief as it was on turn one.
+ */
+export function buildTurnState(ctx: LessonContext): string {
+  const { stage, problem, hintsUsed } = ctx;
+  const parts = [`Stage: ${stage}`];
+  if (problem) {
+    parts.push(`Problem: ${problem.id}`);
+    parts.push(`Hints spent: ${hintsUsed} of ${problem.hints.length}`);
+  }
+  return `[Lesson state — ${parts.join(' · ')}]`;
 }
 
 /**
@@ -113,6 +161,8 @@ export function buildLessonContext(ctx: LessonContext): string {
     `Unit: ${unitTitle}`,
     `Skill: ${skill.title}`,
     `Stage: ${stage}`,
+    ``,
+    `What this skill is for: ${skill.summary}`,
     ``,
     `### How this skill is taught`,
     ``,
@@ -168,6 +218,17 @@ export function buildLessonContext(ctx: LessonContext): string {
       `from it, or let its structure dictate the order you ask questions in.`,
       '',
       problem.solution,
+    );
+  }
+
+  if (ctx.openingMessage) {
+    lines.push(
+      '',
+      `### Already said`,
+      '',
+      `The student has already seen this from you, so do not repeat it — respond to their reply:`,
+      '',
+      `> ${ctx.openingMessage.replace(/\n+/g, ' ')}`,
     );
   }
 

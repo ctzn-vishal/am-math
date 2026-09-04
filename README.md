@@ -112,15 +112,15 @@ panel mid-lesson.
 **All eight figure kinds are drawable.** Bar models are draggable; the rest are read-only for
 now.
 
-**Units 1–4 are authored** — the algebra spine, in course order: exponents, linear systems,
-expansion, quadratic factorisation. Each has per-skill CPA notes, misconception probes taken
-from the source PDFs, and problems with structured answers that code can mark.
+**All fourteen units are authored.** Every skill has its own CPA notes, misconception probes
+taken from the source PDFs, and at least one problem with a structured answer that code can
+mark — 46 problems across 49 skills. `content.test.ts` holds every unit in `AUTHORED_UNITS`
+to that standard, and a new unit cannot join the set without meeting it.
 
-**Ten units remain mechanically ported.** The tutor teaches them competently off the
-syllabus outline, but they share one set of CPA notes per unit and have no marked problems,
-so `check_answer` has nothing to check and no mastery evidence accumulates there. The
-dashboard labels which units are which, and `content.test.ts` holds every unit listed in
-`AUTHORED_UNITS` to the full standard — adding a unit to that set without doing the work
-fails the build.
+**The lesson has a shape.** A session works through a skill's problems one at a time: the
+tutor marks an answer with `check_answer`, the verdict shows in the transcript, and a
+solved problem offers *Next problem*. Hints are spent through a `give_hint` tool so the
+count that discounts a later correct answer is exact rather than inferred from turn counts.
+The dashboard offers to resume any lesson that was left mid-problem.
 
 See [docs/REBUILD-PLAN.md](docs/REBUILD-PLAN.md) for the full plan and phasing.

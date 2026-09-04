@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { executeTool, type TurnInput } from './engine';
 import { buildTools, renderToolName, kindFromToolName } from './tools';
-import { buildLessonContext, SYSTEM_INSTRUCTION } from './prompt';
+import { buildLessonContext, buildTurnState, openingMessage, SYSTEM_INSTRUCTION } from './prompt';
 import { getSkill, getProblem } from '@/lib/content';
 import { IMPLEMENTED_KINDS, assertGeminiCompatible } from '@/lib/visual/registry';
 
@@ -212,8 +212,40 @@ describe('unknown tools', () => {
   });
 });
 
+describe('give_hint', () => {
+  it('reveals the next hint in order and reports the running count', () => {
+    const outcome = executeTool('give_hint', { hint_number: 1 }, baseInput);
+    expect(outcome.isError).toBe(false);
+    expect(outcome.payload).toMatchObject({ hint_number: 1, hint: problem.hints[0], remaining: 2 });
+    expect(outcome.events[0]).toEqual({ type: 'hint_given', hintNumber: 1, hintsUsed: 1 });
+    expect(outcome.hintGiven).toEqual({ hintNumber: 1 });
+  });
+
+  it('refuses to skip ahead', () => {
+    const outcome = executeTool('give_hint', { hint_number: 3 }, baseInput);
+    expect(outcome.isError).toBe(true);
+    expect(String((outcome.payload as { error: string }).error)).toContain('next is hint 1');
+  });
+
+  it('refuses once every hint is spent', () => {
+    const outcome = executeTool(
+      'give_hint',
+      { hint_number: 4 },
+      { ...baseInput, hintsUsed: problem.hints.length },
+    );
+    expect(outcome.isError).toBe(true);
+    expect(String((outcome.payload as { error: string }).error)).toContain('All 3 hints');
+  });
+
+  it('is not offered when the problem has no hints', () => {
+    const bare = { ...problem, hints: [] };
+    expect(buildTools(skill, bare).map((t) => t.name)).not.toContain('give_hint');
+    expect(buildTools(skill, problem).map((t) => t.name)).toContain('give_hint');
+  });
+});
+
 describe('tool declarations', () => {
-  const tools = buildTools(skill);
+  const tools = buildTools(skill, problem);
 
   it('offers exactly the render tools that have renderers', () => {
     const renderNames = tools.map((t) => t.name).filter((n) => n.startsWith('render_'));
@@ -297,6 +329,34 @@ describe('prompt assembly', () => {
     expect(context).toContain('1. (spent)');
     expect(context).toContain('2. (spent)');
     expect(context).not.toContain('3. (spent)');
+  });
+
+  it('tells the model what it has already said, so the opening is not repeated', () => {
+    const context = buildLessonContext({
+      skill,
+      unitTitle: 'Unit',
+      stage: 'concrete',
+      problem,
+      hintsUsed: 0,
+      priorMisconceptionCodes: [],
+      openingMessage: openingMessage(skill, problem),
+    });
+    expect(context).toContain('Already said');
+    expect(context).toContain('Describe it to me in your own words');
+  });
+
+  it('sends a one-line state on turns that do not carry the brief', () => {
+    const state = buildTurnState({
+      skill,
+      unitTitle: 'Unit',
+      stage: 'abstract',
+      problem,
+      hintsUsed: 2,
+      priorMisconceptionCodes: [],
+    });
+    expect(state).toContain('Stage: abstract');
+    expect(state).toContain('Hints spent: 2 of 3');
+    expect(state.length).toBeLessThan(200);
   });
 
   it('fences the worked solution as reference only', () => {

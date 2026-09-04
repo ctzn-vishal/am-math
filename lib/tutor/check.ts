@@ -160,18 +160,46 @@ function checkSet(response: string, answer: Extract<Answer, { type: 'set' }>): C
   return { status: 'correct' };
 }
 
+/**
+ * Canonical form for an exact-match answer.
+ *
+ * LaTeX fractions become `(a)/(b)` before the generic normaliser strips the command names,
+ * so `\frac{x-3}{2x}` and `(x-3)/(2x)` meet in the middle. Multiplication dots and the
+ * various stars all become nothing, since `2x` and `2*x` are the same claim.
+ */
+function canonicalExact(s: string): string {
+  return normalise(
+    s
+      .replace(/\\(?:d|t)?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
+      .replace(/\\(?:cdot|times)/g, '')
+      .replace(/[*·×]/g, '')
+      .replace(/\\circ|°/g, ''),
+  )
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/^["'`]+|["'`]+$/g, '')
+    .replace(/\.$/, '');
+}
+
+/** A looser reading with the brackets gone: `(x-3)/(2x)` and `x-3/2x` are one intent here. */
+function unbracketed(s: string): string {
+  return s.replace(/[()\[\]]/g, '');
+}
+
 function checkExact(response: string, answer: Extract<Answer, { type: 'exact' }>): CheckResult {
-  const canonical = (s: string) => normalise(s).toLowerCase().replace(/\s+/g, '');
-  const got = canonical(response);
+  const got = canonicalExact(response);
 
   if (got.length === 0) {
     return { status: 'unparseable', reason: 'Empty response.' };
   }
 
-  const accepted = [answer.value, ...answer.accepts].map(canonical);
-  return accepted.includes(got)
-    ? { status: 'correct' }
-    : { status: 'incorrect', got: response.trim().slice(0, 80) };
+  const accepted = [answer.value, ...answer.accepts].map(canonicalExact);
+  if (accepted.includes(got)) return { status: 'correct' };
+
+  const loose = unbracketed(got);
+  if (accepted.some((a) => unbracketed(a) === loose)) return { status: 'correct' };
+
+  return { status: 'incorrect', got: response.trim().slice(0, 80) };
 }
 
 // ---------------------------------------------------------------------------

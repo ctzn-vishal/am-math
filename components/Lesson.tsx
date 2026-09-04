@@ -2,11 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, ArrowUp, ChevronLeft, ImagePlus, Loader2, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  ArrowUp,
+  Check,
+  ChevronLeft,
+  ImagePlus,
+  Lightbulb,
+  Loader2,
+  X,
+} from 'lucide-react';
 import type { VisualSpec } from '@/lib/visual/spec';
 import type { TutorEvent } from '@/lib/tutor/engine';
 import type { CpaStage } from '@/lib/db/schema';
+import type { ProblemProgress } from '@/lib/session/service';
 import { validateSpec } from '@/lib/visual/validate';
+import { finishLesson, nextProblem } from '@/app/actions';
 import { VisualCanvas } from './visual/VisualCanvas';
 import { MathText } from './MathText';
 import { StageRail } from './StageRail';
@@ -27,6 +39,8 @@ export interface Message {
   imageData?: string;
   /** Set while a tutor message is still streaming in. */
   pending?: boolean;
+  /** The marking tool's verdict on the answer this reply responds to. */
+  verdict?: 'correct' | 'incorrect';
 }
 
 export interface LessonProps {
@@ -35,7 +49,11 @@ export interface LessonProps {
   unitTitle: string;
   initialStage: CpaStage;
   initialMessages: Message[];
+  initialHintsUsed: number;
+  hintCount: number;
+  progress: ProblemProgress;
   problemStatement?: string;
+  problemId?: string;
 }
 
 export function Lesson({
@@ -44,10 +62,16 @@ export function Lesson({
   unitTitle,
   initialStage,
   initialMessages,
+  initialHintsUsed,
+  hintCount,
+  progress,
   problemStatement,
+  problemId,
 }: LessonProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [stage, setStage] = useState<CpaStage>(initialStage);
+  const [hintsUsed, setHintsUsed] = useState(initialHintsUsed);
+  const [solved, setSolved] = useState(progress.currentSolved);
   const [spec, setSpec] = useState<VisualSpec | null>(
     [...initialMessages].reverse().find((m) => m.spec)?.spec ?? null,
   );
@@ -62,7 +86,13 @@ export function Lesson({
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, solved]);
+
+  // Hand focus back to the box once a reply has landed, so the next thought can be typed
+  // without reaching for the mouse.
+  useEffect(() => {
+    if (!busy) textRef.current?.focus();
+  }, [busy]);
 
   const send = useCallback(
     async (text: string, options: { imageDataUrl?: string; studentSpec?: VisualSpec } = {}) => {
@@ -141,6 +171,20 @@ export function Lesson({
                 setStage(event.stage);
                 break;
 
+              case 'hint_given':
+                setHintsUsed(event.hintsUsed);
+                break;
+
+              case 'answer_checked':
+                if (event.result.status !== 'unparseable') {
+                  const verdict = event.result.status;
+                  setMessages((prev) =>
+                    prev.map((m) => (m.id === tutorId ? { ...m, verdict } : m)),
+                  );
+                  if (verdict === 'correct' && event.problemId === problemId) setSolved(true);
+                }
+                break;
+
               case 'error':
                 setError(event.message);
                 break;
@@ -160,14 +204,16 @@ export function Lesson({
         setBusy(false);
       }
     },
-    [busy, sessionId],
+    [busy, sessionId, problemId],
   );
 
   const handleSubmit = () => {
     const text = input.trim();
+    if (text.length === 0 && !image) return;
     void send(text, image ? { imageDataUrl: image } : {});
     setInput('');
     setImage(null);
+    if (textRef.current) textRef.current.style.height = 'auto';
   };
 
   /** Hand the tutor the figure itself, not a description of it. */
@@ -196,16 +242,24 @@ export function Lesson({
     event.target.value = '';
   };
 
+  const hasNext = solved && progress.nextProblemId !== null;
+  const allDone = solved && progress.nextProblemId === null;
+
   return (
     <div className="flex h-dvh flex-col lg:flex-row">
       {/* Canvas */}
       {/*
         Stacked below lg, the canvas is capped so the conversation always keeps roughly half
-        the screen. Without it an empty canvas — or a tall figure — pushes the input off the
-        bottom on a tablet, which is where most of the reading happens.
+        the screen — but only once there is a figure to show. An empty canvas collapses to
+        the problem card, so on a phone the first thing seen is the problem and the tutor's
+        opening, not a placeholder.
       */}
-      <section className="flex max-h-[48dvh] min-h-0 shrink-0 flex-col border-b border-line bg-surface lg:max-h-none lg:h-full lg:w-[55%] lg:shrink lg:border-b-0 lg:border-r">
-        <header className="flex items-start gap-3 border-b border-line px-4 py-3.5 sm:px-5">
+      <section
+        className={`flex min-h-0 shrink-0 flex-col border-b border-line bg-surface lg:h-full lg:max-h-none lg:w-[55%] lg:shrink lg:border-b-0 lg:border-r ${
+          spec ? 'max-h-[48dvh]' : 'max-h-[40dvh]'
+        }`}
+      >
+        <header className="flex items-start gap-3 border-b border-line px-4 py-3 sm:px-5">
           <Link
             href="/"
             aria-label="Back to all skills"
@@ -218,25 +272,79 @@ export function Lesson({
             <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
               {unitTitle}
             </p>
-            <h1 className="mt-0.5 font-serif text-[17px] leading-snug text-ink sm:text-[19px]">
+            <h1 className="mt-0.5 line-clamp-2 font-serif text-[16px] leading-snug text-ink sm:text-[18px]">
               {skillTitle}
             </h1>
           </div>
 
-          <div className="mt-0.5 shrink-0">
+          <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1.5">
             <StageRail stage={stage} />
+            <form action={finishLesson}>
+              <input type="hidden" name="sessionId" value={sessionId} />
+              <button
+                type="submit"
+                className="text-[11px] font-medium text-ink-faint transition-colors hover:text-ink"
+              >
+                Finish lesson
+              </button>
+            </form>
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
           {problemStatement && (
-            <div className="mb-6 rounded-xl border border-line bg-surface-sunk px-4 py-3.5">
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
-                Problem
-              </p>
+            <div
+              className={`mb-5 rounded-xl border px-4 py-3.5 ${
+                solved ? 'border-affirm/30 bg-affirm-soft' : 'border-line bg-surface-sunk'
+              }`}
+            >
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+                  {progress.total > 1 ? `Problem ${progress.index} of ${progress.total}` : 'Problem'}
+                </p>
+                <p className="flex items-center gap-2 text-[11px] text-ink-faint">
+                  {hintCount > 0 && (
+                    <span className="flex items-center gap-1" title="Hints spent on this problem">
+                      <Lightbulb className="h-3 w-3" />
+                      {hintsUsed}/{hintCount}
+                    </span>
+                  )}
+                  {solved && (
+                    <span className="flex items-center gap-1 font-medium text-affirm">
+                      <Check className="h-3 w-3" /> Solved
+                    </span>
+                  )}
+                </p>
+              </div>
               <MathText className="tutor-prose text-[14px] leading-relaxed text-ink">
                 {problemStatement}
               </MathText>
+
+              {hasNext && (
+                <form action={nextProblem} className="mt-3">
+                  <input type="hidden" name="sessionId" value={sessionId} />
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 rounded-lg bg-sage-500 px-3.5 py-2 text-[13px] font-medium text-paper transition-opacity hover:opacity-90"
+                  >
+                    Next problem
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </form>
+              )}
+
+              {allDone && (
+                <form action={finishLesson} className="mt-3">
+                  <input type="hidden" name="sessionId" value={sessionId} />
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 rounded-lg bg-sage-500 px-3.5 py-2 text-[13px] font-medium text-paper transition-opacity hover:opacity-90"
+                  >
+                    That is every problem here — back to the course
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </form>
+              )}
             </div>
           )}
 
@@ -259,7 +367,7 @@ export function Lesson({
               </button>
             </>
           ) : (
-            <div className="flex h-full min-h-48 flex-col items-center justify-center text-center">
+            <div className="hidden h-full min-h-40 flex-col items-center justify-center text-center lg:flex">
               <p className="max-w-xs text-[14px] leading-relaxed text-ink-faint">
                 Figures the tutor draws will appear here, and you can rearrange them.
               </p>
@@ -286,6 +394,19 @@ export function Lesson({
                   </p>
                 </div>
               </div>
+            )}
+
+            {hasNext && !busy && (
+              <form action={nextProblem} className="flex justify-center pt-2">
+                <input type="hidden" name="sessionId" value={sessionId} />
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 rounded-full border border-sage-400 bg-sage-50 px-4 py-2 text-[13px] font-medium text-sage-700 transition-colors hover:bg-sage-100"
+                >
+                  Next problem
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </form>
             )}
           </div>
         </div>
@@ -327,6 +448,7 @@ export function Lesson({
               <textarea
                 ref={textRef}
                 value={input}
+                autoFocus
                 onChange={(e) => {
                   setInput(e.target.value);
                   e.target.style.height = 'auto';
@@ -339,14 +461,16 @@ export function Lesson({
                   }
                 }}
                 rows={1}
-                placeholder="Say what you are thinking…"
+                placeholder={
+                  solved ? 'Say why it worked, or move on to the next problem…' : 'Say what you are thinking…'
+                }
                 className="max-h-40 flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-relaxed text-ink outline-none placeholder:text-ink-faint"
               />
 
               <button
                 onClick={handleSubmit}
                 disabled={busy || (input.trim().length === 0 && !image)}
-                className="mb-0.5 rounded-lg bg-sage-500 p-2 text-white transition-opacity hover:opacity-90 disabled:opacity-25"
+                className="mb-0.5 rounded-lg bg-sage-500 p-2 text-paper transition-opacity hover:opacity-90 disabled:opacity-25"
                 aria-label="Send"
                 type="button"
               >
@@ -357,6 +481,9 @@ export function Lesson({
                 )}
               </button>
             </div>
+            <p className="mt-2 text-[11px] text-ink-faint">
+              Enter to send · Shift+Enter for a new line · write maths like x^2 or 3/4
+            </p>
           </div>
         </div>
       </section>
@@ -389,6 +516,26 @@ function MessageBubble({ message }: { message: Message }) {
 
   return (
     <div className="animate-rise">
+      {message.verdict && (
+        <p
+          className={`mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] ${
+            message.verdict === 'correct'
+              ? 'bg-affirm-soft text-affirm'
+              : 'bg-query-soft text-query'
+          }`}
+        >
+          {message.verdict === 'correct' ? (
+            <>
+              <Check className="h-3 w-3" /> Marked correct
+            </>
+          ) : (
+            <>
+              <X className="h-3 w-3" /> Not yet
+            </>
+          )}
+        </p>
+      )}
+
       {message.pending && message.text.length === 0 ? (
         <div className="flex items-center gap-1.5 py-1">
           {[0, 1, 2].map((i) => (

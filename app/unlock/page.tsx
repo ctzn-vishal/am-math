@@ -65,7 +65,7 @@ export default async function UnlockPage({
 
           <button
             type="submit"
-            className="mt-4 w-full rounded-xl bg-sage-500 px-4 py-3 text-[15px] font-medium text-white transition-opacity hover:opacity-90"
+            className="mt-4 w-full rounded-xl bg-sage-500 px-4 py-3 text-[15px] font-medium text-paper transition-opacity hover:opacity-90"
           >
             Continue
           </button>

@@ -41,6 +41,16 @@ export const sessions = sqliteTable(
     cpaStage: text('cpa_stage', { enum: ['concrete', 'pictorial', 'abstract'] })
       .notNull()
       .default('concrete'),
+    /**
+     * Hints the tutor has actually revealed on the current problem, counted by the
+     * `give_hint` tool rather than inferred from turn counts. Reset when the problem changes.
+     */
+    hintsUsed: integer('hints_used').notNull().default(0),
+    /**
+     * The problem the model was last briefed on. When it differs from `problemId` the next
+     * turn resends the full lesson brief, so a problem switch mid-session reaches the model.
+     */
+    briefedProblemId: text('briefed_problem_id'),
     startedAt: integer('started_at').notNull().default(now),
     endedAt: integer('ended_at'),
   },

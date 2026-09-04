@@ -129,3 +129,28 @@ describe('unparseable is never recorded as wrong', () => {
     expect(result.status).toBe('unparseable');
   });
 });
+
+describe('exact answers written as algebra', () => {
+  const answer: Answer = { type: 'exact', value: '(x-3)/(2x)', accepts: [] };
+
+  it('reads a LaTeX fraction as the same expression', () => {
+    expect(checkAnswer('\\frac{x-3}{2x}', answer).status).toBe('correct');
+    expect(checkAnswer('$\\frac{x - 3}{2x}$', answer).status).toBe('correct');
+  });
+
+  it('is indifferent to brackets and spacing', () => {
+    expect(checkAnswer('x-3 / 2x', answer).status).toBe('correct');
+    expect(checkAnswer('(x - 3) / (2 x)', answer).status).toBe('correct');
+  });
+
+  it('still refuses a different expression', () => {
+    expect(checkAnswer('(x+3)/(2x)', answer).status).toBe('incorrect');
+  });
+
+  it('matches a named congruence test regardless of case or punctuation', () => {
+    const test: Answer = { type: 'exact', value: 'SAS', accepts: ['side-angle-side', 'side angle side'] };
+    expect(checkAnswer('sas', test).status).toBe('correct');
+    expect(checkAnswer('Side-Angle-Side.', test).status).toBe('correct');
+    expect(checkAnswer('SSS', test).status).toBe('incorrect');
+  });
+});

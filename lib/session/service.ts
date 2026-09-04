@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { db } from '@/lib/db';
 import { attempts, sessions, skillState, students, turns, type CpaStage } from '@/lib/db/schema';
@@ -64,7 +64,10 @@ export interface SessionContext {
   problemId: string | null;
   stage: CpaStage;
   lastInteractionId: string | null;
+  /** Hints revealed on the current problem, as counted by the `give_hint` tool. */
   hintsUsed: number;
+  /** The problem the model was last given the full brief for. */
+  briefedProblemId: string | null;
   priorMisconceptionCodes: string[];
 }
 
@@ -96,10 +99,6 @@ export async function getSessionContext(sessionId: string): Promise<SessionConte
   const session = rows[0];
   if (!session || !session.skillId) return null;
 
-  // Hints are counted from the transcript rather than stored, so the count can never drift
-  // from what the student was actually shown.
-  const hintsUsed = await countHintsSpent(sessionId);
-
   const seen = await db
     .selectDistinct({ code: attempts.misconceptionCode })
     .from(attempts)
@@ -118,27 +117,114 @@ export async function getSessionContext(sessionId: string): Promise<SessionConte
     problemId: session.problemId,
     stage: session.cpaStage,
     lastInteractionId: session.lastInteractionId,
-    hintsUsed,
+    hintsUsed: session.hintsUsed,
+    briefedProblemId: session.briefedProblemId,
     priorMisconceptionCodes: seen.map((r) => r.code).filter((c): c is string => c !== null),
   };
 }
 
-/**
- * How many hints have been spent on the current problem.
- *
- * Approximated by counting tutor turns since the problem was set, capped at the number of
- * hints that exist. Imperfect — the tutor may ask a question without spending a hint — but
- * it errs toward crediting the student with *more* help than they had, which is the safe
- * direction for a mastery estimate. A `hint_given` tool would make this exact; noted for
- * Phase 3 rather than guessed at now.
- */
-async function countHintsSpent(sessionId: string): Promise<number> {
-  const rows = await db
-    .select({ role: turns.role })
-    .from(turns)
-    .where(eq(turns.sessionId, sessionId));
+export async function recordHintGiven(sessionId: string, hintsUsed: number): Promise<void> {
+  await db.update(sessions).set({ hintsUsed }).where(eq(sessions.id, sessionId));
+}
 
-  return rows.filter((r) => r.role === 'tutor').length;
+/** Note that the model has now been briefed on this problem, so the next turn need not repeat it. */
+export async function markBriefed(sessionId: string, problemId: string | null): Promise<void> {
+  await db.update(sessions).set({ briefedProblemId: problemId ?? '' }).where(eq(sessions.id, sessionId));
+}
+
+/**
+ * Move a session on to another problem on the same skill. The hint count restarts, and
+ * leaving `briefedProblemId` untouched is what makes the next turn resend the brief.
+ */
+export async function switchProblem(sessionId: string, problemId: string): Promise<void> {
+  await db.update(sessions).set({ problemId, hintsUsed: 0 }).where(eq(sessions.id, sessionId));
+}
+
+export async function endSession(sessionId: string): Promise<void> {
+  await db.update(sessions).set({ endedAt: Date.now() }).where(eq(sessions.id, sessionId));
+}
+
+export interface ProblemProgress {
+  /** 1-based position of the current problem among the skill's problems. */
+  index: number;
+  total: number;
+  /** Problems answered correctly in this session. */
+  solvedIds: string[];
+  currentSolved: boolean;
+  nextProblemId: string | null;
+}
+
+/**
+ * Where the session is in the skill's problem bank. "Next" is the first problem not yet
+ * solved in this session, in bank order, so a student who skips one is brought back to it.
+ */
+export async function getProblemProgress(context: SessionContext): Promise<ProblemProgress> {
+  const problems = problemsForSkill(context.skillId);
+
+  const solvedRows = await db
+    .select({ problemId: attempts.problemId })
+    .from(attempts)
+    .where(and(eq(attempts.sessionId, context.sessionId), eq(attempts.correct, true)));
+  const solved = new Set(solvedRows.map((r) => r.problemId).filter((p): p is string => p !== null));
+
+  const index = problems.findIndex((p) => p.id === context.problemId);
+  const next =
+    problems.find((p, i) => i > index && !solved.has(p.id)) ??
+    problems.find((p) => p.id !== context.problemId && !solved.has(p.id)) ??
+    null;
+
+  return {
+    index: index >= 0 ? index + 1 : 0,
+    total: problems.length,
+    solvedIds: [...solved],
+    currentSolved: context.problemId !== null && solved.has(context.problemId),
+    nextProblemId: next?.id ?? null,
+  };
+}
+
+export interface RecentSession {
+  sessionId: string;
+  skillId: string;
+  stage: CpaStage;
+  startedAt: number;
+  turnCount: number;
+}
+
+/**
+ * Lessons the student can pick back up: not ended, and with at least one exchange in them.
+ * A session that was opened and abandoned before a word was typed is not worth resuming.
+ */
+export async function recentSessions(limit = 4, studentId = SOLO_STUDENT_ID): Promise<RecentSession[]> {
+  await ensureSchema();
+
+  const rows = await db
+    .select({
+      sessionId: sessions.id,
+      skillId: sessions.skillId,
+      stage: sessions.cpaStage,
+      startedAt: sessions.startedAt,
+      turnCount: count(turns.id),
+    })
+    .from(sessions)
+    .leftJoin(turns, eq(turns.sessionId, sessions.id))
+    .where(and(eq(sessions.studentId, studentId), isNull(sessions.endedAt)))
+    .groupBy(sessions.id)
+    .orderBy(desc(sessions.startedAt))
+    .limit(limit * 4);
+
+  return rows
+    .filter((r): r is typeof r & { skillId: string } => r.skillId !== null && r.turnCount > 0)
+    .slice(0, limit);
+}
+
+/** The most recent resumable session per skill, for the dashboard's Continue buttons. */
+export async function openSessionsBySkill(studentId = SOLO_STUDENT_ID): Promise<Map<string, RecentSession>> {
+  const recent = await recentSessions(50, studentId);
+  const bySkill = new Map<string, RecentSession>();
+  for (const session of recent) {
+    if (!bySkill.has(session.skillId)) bySkill.set(session.skillId, session);
+  }
+  return bySkill;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,6 @@
-import { ArrowRight, BookOpen, Sparkles } from 'lucide-react';
-import { getPack, getSkill, unitsInOrder } from '@/lib/content';
-import { AUTHORED_UNITS } from '@/content/packs/dimensions-g8';
-import { getMastery, getRecommendations } from '@/lib/session/service';
+import { ArrowRight, BookOpen, Clock, Sparkles } from 'lucide-react';
+import { getPack, getSkill, problemsForSkill, unitOfSkill, unitsInOrder } from '@/lib/content';
+import { getMastery, getRecommendations, openSessionsBySkill } from '@/lib/session/service';
 import type { Mastery, MasteryBand } from '@/lib/mastery/model';
 import { beginLesson } from './actions';
 
@@ -14,31 +13,119 @@ const BAND_STYLE: Record<MasteryBand, { label: string; dot: string; text: string
   secure: { label: 'Secure', dot: 'bg-affirm', text: 'text-affirm' },
 };
 
+const STRAND_LABEL: Record<string, string> = {
+  algebra: 'Algebra',
+  geometry: 'Geometry',
+  graphs: 'Graphs',
+  mensuration: 'Mensuration',
+  statistics: 'Statistics',
+  number: 'Number',
+};
+
+function timeAgo(ms: number): string {
+  const minutes = Math.round((Date.now() - ms) / 60_000);
+  if (minutes < 2) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? 'yesterday' : `${days} days ago`;
+}
+
 export default async function Dashboard() {
   const pack = getPack();
   const units = unitsInOrder();
-  const mastery = await getMastery();
-  const recommendations = await getRecommendations();
+  const [mastery, recommendations, openBySkill] = await Promise.all([
+    getMastery(),
+    getRecommendations(),
+    openSessionsBySkill(),
+  ]);
+
+  // One card per skill, newest first. Two abandoned sessions on the same skill are one
+  // thing to pick up, not two.
+  const recent = [...openBySkill.values()].sort((a, b) => b.startedAt - a.startedAt).slice(0, 3);
 
   const started = [...mastery.values()].filter((m) => m.attemptCount > 0).length;
+  const secure = [...mastery.values()].filter((m) => m.band === 'secure').length;
 
   return (
-    <main className="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
-      <header className="mb-12">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-          {pack.level}
-        </p>
-        <h1 className="font-serif text-4xl font-medium tracking-tight text-ink sm:text-5xl">
-          Math Sage
-        </h1>
-        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-soft">
-          Work through a skill with a tutor that draws. Every idea is met three times — as
-          something you could hold, as a picture, and only then as symbols.
-        </p>
+    <main className="mx-auto max-w-4xl px-5 py-10 sm:px-8 sm:py-14">
+      <header className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+            {pack.title}
+          </p>
+          <h1 className="font-serif text-4xl font-medium tracking-tight text-ink sm:text-5xl">
+            Math Sage
+          </h1>
+          <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-soft">
+            Work through a skill with a tutor that draws. Every idea is met three times — as
+            something you could hold, as a picture, and only then as symbols.
+          </p>
+        </div>
+
+        {started > 0 && (
+          <dl className="flex shrink-0 gap-6 text-[13px] text-ink-soft">
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-faint">Started</dt>
+              <dd className="mt-0.5 font-serif text-2xl text-ink">
+                {started}
+                <span className="text-[13px] text-ink-faint"> / {pack.skills.length}</span>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-faint">Secure</dt>
+              <dd className="mt-0.5 font-serif text-2xl text-affirm">{secure}</dd>
+            </div>
+          </dl>
+        )}
       </header>
 
+      {recent.length > 0 && (
+        <section className="mb-12">
+          <h2 className="mb-4 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+            <Clock className="h-3.5 w-3.5" />
+            Pick up where you left off
+          </h2>
+
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            {recent.map((session) => {
+              const skill = getSkill(session.skillId);
+              if (!skill) return null;
+              const unit = unitOfSkill(session.skillId);
+
+              return (
+                <form action={beginLesson} key={session.sessionId}>
+                  <input type="hidden" name="sessionId" value={session.sessionId} />
+                  <button
+                    type="submit"
+                    className="group flex h-full w-full flex-col rounded-xl border border-sage-200 bg-sage-50 p-4 text-left transition-colors hover:border-sage-400"
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-sage-600">
+                      {unit?.title ?? 'Lesson'}
+                    </p>
+                    <p className="mt-1.5 line-clamp-2 flex-1 font-serif text-[15px] leading-snug text-ink">
+                      {skill.title}
+                    </p>
+                    <p className="mt-3 flex items-center justify-between text-[12px] text-ink-faint">
+                      <span>
+                        {session.stage} · {timeAgo(session.startedAt)}
+                      </span>
+                      <span className="flex items-center gap-1 font-medium text-sage-700">
+                        Continue
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </p>
+                  </button>
+                </form>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {recommendations.length > 0 && (
-        <section className="mb-14">
+        <section className="mb-12">
           <h2 className="mb-4 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
             <Sparkles className="h-3.5 w-3.5" />
             {started === 0 ? 'Start here' : 'Suggested next'}
@@ -48,17 +135,25 @@ export default async function Dashboard() {
             {recommendations.map((rec) => {
               const skill = getSkill(rec.skillId);
               if (!skill) return null;
+              const unit = unitOfSkill(rec.skillId);
+              const open = openBySkill.get(rec.skillId);
 
               return (
                 <form action={beginLesson} key={rec.skillId}>
                   <input type="hidden" name="skillId" value={rec.skillId} />
+                  {open && <input type="hidden" name="sessionId" value={open.sessionId} />}
                   <button
                     type="submit"
                     className="group flex w-full items-center gap-4 rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:border-sage-400 hover:bg-sage-50"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-serif text-[17px] leading-snug text-ink">{skill.title}</p>
-                      <p className="mt-1 text-[13px] text-ink-soft">{rec.explanation}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+                        {unit ? `Unit ${unit.order} · ${unit.title}` : ''}
+                      </p>
+                      <p className="mt-1 font-serif text-[17px] leading-snug text-ink">{skill.title}</p>
+                      <p className="mt-1 text-[13px] text-ink-soft">
+                        {open ? 'You have a lesson in progress here — pick it back up.' : rec.explanation}
+                      </p>
                     </div>
                     <ArrowRight className="h-4 w-4 shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5 group-hover:text-sage-500" />
                   </button>
@@ -81,8 +176,6 @@ export default async function Dashboard() {
               .map((id) => getSkill(id))
               .filter((s): s is NonNullable<typeof s> => s !== undefined);
 
-            const authored = AUTHORED_UNITS.has(unit.id);
-
             return (
               <details
                 key={unit.id}
@@ -95,36 +188,40 @@ export default async function Dashboard() {
                   <span className="min-w-0 flex-1 font-serif text-[16px] leading-snug text-ink">
                     {unit.title}
                   </span>
+                  <span className="hidden shrink-0 text-[11px] uppercase tracking-[0.08em] text-ink-faint sm:inline">
+                    {STRAND_LABEL[unit.strand] ?? unit.strand}
+                  </span>
                   <UnitProgress skills={skills.map((s) => s.id)} mastery={mastery} />
                 </summary>
 
                 <div className="mt-3 space-y-1 pl-8">
-                  {!authored && (
-                    <p className="mb-3 rounded-lg bg-query-soft px-3 py-2 text-[12px] leading-relaxed text-query">
-                      Ported from the syllabus outline but not yet written up. The tutor can
-                      teach it, but without the per-skill teaching notes and marked problems
-                      that unit 2 has.
-                    </p>
-                  )}
-
                   {skills.map((skill) => {
                     const m = mastery.get(skill.id);
                     const band = m?.band ?? 'unseen';
                     const style = BAND_STYLE[band];
+                    const open = openBySkill.get(skill.id);
+                    const problemCount = problemsForSkill(skill.id).length;
 
                     return (
                       <form action={beginLesson} key={skill.id}>
                         <input type="hidden" name="skillId" value={skill.id} />
+                        {open && <input type="hidden" name="sessionId" value={open.sessionId} />}
                         <button
                           type="submit"
                           className="group/skill flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-sage-50"
                         >
                           <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${style.dot}`} />
-                          <span className="min-w-0 flex-1 text-[14px] leading-snug text-ink-soft group-hover/skill:text-ink">
-                            {skill.title}
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[14px] leading-snug text-ink-soft group-hover/skill:text-ink">
+                              {skill.title}
+                            </span>
+                            <span className="mt-0.5 block text-[12px] text-ink-faint">
+                              {problemCount} {problemCount === 1 ? 'problem' : 'problems'}
+                              {open ? ' · in progress' : ''}
+                            </span>
                           </span>
                           <span className={`shrink-0 text-[11px] font-medium ${style.text}`}>
-                            {style.label}
+                            {open ? 'Continue' : style.label}
                           </span>
                         </button>
                       </form>

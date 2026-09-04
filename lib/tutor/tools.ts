@@ -1,5 +1,5 @@
 import { IMPLEMENTED_KINDS, VISUAL_KINDS, jsonSchemaFor } from '@/lib/visual/registry';
-import type { SkillNode } from '@/lib/content/schema';
+import type { Problem, SkillNode } from '@/lib/content/schema';
 
 /**
  * Tool declarations for the Interactions API.
@@ -125,17 +125,46 @@ function logMisconceptionTool(skill: SkillNode | undefined): ToolDeclaration {
   };
 }
 
+function giveHintTool(problem: Problem): ToolDeclaration {
+  return {
+    type: 'function',
+    name: 'give_hint',
+    description:
+      'Reveal the next scaffolding hint for the current problem, and record that it was spent. ' +
+      'Call this BEFORE you say anything that gives away what a hint contains - the count of hints ' +
+      'used is what makes a later correct answer worth less, so an unrecorded hint flatters the ' +
+      'student. Hints are spent strictly in order; the tool returns the text to work from. Do not ' +
+      'read it out word for word - turn it into a question.',
+    parameters: {
+      type: 'object',
+      properties: {
+        hint_number: {
+          type: 'integer',
+          minimum: 1,
+          maximum: problem.hints.length,
+          description: 'Which hint, 1-based. Must be the next unspent one.',
+        },
+      },
+      required: ['hint_number'],
+    },
+  };
+}
+
 /**
  * The full tool set for one turn. `log_misconception` is skill-scoped so its enum can be
  * narrowed to codes that actually apply, which stops the model inventing plausible-looking
- * ones that no problem references.
+ * ones that no problem references. `give_hint` exists only when the problem has hints.
  */
-export function buildTools(skill: SkillNode | undefined): ToolDeclaration[] {
+export function buildTools(skill: SkillNode | undefined, problem?: Problem): ToolDeclaration[] {
   const tools: ToolDeclaration[] = [...renderTools(), checkAnswerTool, advanceStageTool];
 
   // Offering the tool with no valid codes would invite invention.
   if (skill && skill.misconceptions.length > 0) {
     tools.push(logMisconceptionTool(skill));
+  }
+
+  if (problem && problem.hints.length > 0) {
+    tools.push(giveHintTool(problem));
   }
 
   return tools;

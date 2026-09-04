@@ -8,6 +8,13 @@
       "when": 1788548460026,
       "tag": "0000_purple_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788557270311,
+      "tag": "0001_session_hints",
+      "breakpoints": true
     }
   ]
 }

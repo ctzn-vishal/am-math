@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { visualSpecSchema } from '@/lib/visual/spec';
 import { runTurn, type TutorEvent } from '@/lib/tutor/engine';
+import { openingMessage } from '@/lib/tutor/prompt';
 import {
   applyStageChange,
   getSessionContext,
+  markBriefed,
   recordAttempt,
+  recordHintGiven,
   recordMisconception,
   recordTurn,
   resolveLesson,
@@ -37,39 +40,12 @@ const MAX_TEXT = 4000;
 const MAX_IMAGE = 5_600_000;
 
 /**
- * Guard against a leaked deployment URL spending the API quota for strangers. Not an auth
- * system — a single-student build does not need one — but the key is worth this much.
- *
- * Fails closed in production. An unset secret on a public deployment is the one
- * configuration where "carry on regardless" costs real money, so a missing secret there is
- * a refusal rather than a bypass; locally, where the app is not reachable from outside,
- * an unset secret means no guard.
+ * Access is gated in `proxy.ts`, which checks the unlock cookie on every route including
+ * this one. There is deliberately no second check here: an earlier version compared a
+ * header the client never sent, and only looked like it worked because its result object
+ * was always truthy.
  */
-function authorised(request: Request): { ok: true } | { ok: false; reason: string } {
-  const secret = process.env.TUTOR_ACCESS_SECRET;
-
-  if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      return {
-        ok: false,
-        reason:
-          'TUTOR_ACCESS_SECRET is not set on this deployment, so the tutor is disabled. Set it ' +
-          'in the environment to enable it.',
-      };
-    }
-    return { ok: true };
-  }
-
-  return request.headers.get('x-tutor-secret') === secret
-    ? { ok: true }
-    : { ok: false, reason: 'Not authorised.' };
-}
-
 export async function POST(request: Request): Promise<Response> {
-  if (!authorised(request)) {
-    return NextResponse.json({ error: 'Not authorised.' }, { status: 401 });
-  }
-
   let body: TurnRequest;
   try {
     body = (await request.json()) as TurnRequest;
@@ -121,6 +97,12 @@ export async function POST(request: Request): Promise<Response> {
       let replyText = '';
       let lastSpec: unknown = null;
       let stage = context.stage;
+      let hintsUsed = context.hintsUsed;
+
+      // The full brief goes when the model has no context yet, or the problem has changed
+      // since it was last briefed. Every other turn carries a one-line state update.
+      const includeLessonContext =
+        context.lastInteractionId === null || context.briefedProblemId !== (context.problemId ?? '');
 
       try {
         for await (const event of runTurn({
@@ -132,10 +114,10 @@ export async function POST(request: Request): Promise<Response> {
           unitTitle,
           stage,
           ...(problem ? { problem } : {}),
-          hintsUsed: context.hintsUsed,
+          hintsUsed,
           priorMisconceptionCodes: context.priorMisconceptionCodes,
-          // Resend the lesson brief only when the model has no prior context to build on.
-          includeLessonContext: context.lastInteractionId === null,
+          includeLessonContext,
+          ...(includeLessonContext ? { openingMessage: openingMessage(skill, problem) } : {}),
         })) {
           send(event);
 
@@ -153,6 +135,11 @@ export async function POST(request: Request): Promise<Response> {
               await applyStageChange(sessionId, event.stage);
               break;
 
+            case 'hint_given':
+              hintsUsed = event.hintsUsed;
+              await recordHintGiven(sessionId, hintsUsed);
+              break;
+
             case 'answer_checked':
               // Only a definite verdict is evidence. "Unparseable" is our failure to read
               // them and must not touch the mastery estimate.
@@ -163,9 +150,11 @@ export async function POST(request: Request): Promise<Response> {
                   skillId: context.skillId,
                   problemId: event.problemId,
                   correct: event.result.status === 'correct',
-                  hintsUsed: context.hintsUsed,
+                  hintsUsed,
                   cpaStage: stage,
                 });
+                // A system turn so the verdict survives a reload of the transcript.
+                await recordTurn(sessionId, 'system', `check:${event.result.status}:${event.problemId}`);
               }
               break;
 
@@ -175,6 +164,7 @@ export async function POST(request: Request): Promise<Response> {
 
             case 'done':
               if (event.interactionId) await setLastInteractionId(sessionId, event.interactionId);
+              if (includeLessonContext) await markBriefed(sessionId, context.problemId);
               break;
           }
         }
