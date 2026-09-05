@@ -12,6 +12,7 @@ if (!skill || !problem) throw new Error('fixtures missing from the pack');
 
 const baseInput: TurnInput = {
   text: '',
+  intent: 'ask',
   skill,
   unitTitle: 'Linear Equations in Two Variables',
   stage: 'pictorial',
@@ -102,11 +103,21 @@ describe('render tools', () => {
 });
 
 describe('check_answer', () => {
-  it('marks a correct answer', () => {
+  it('cannot mark ordinary discussion as a submitted answer', () => {
     const outcome = executeTool(
       'check_answer',
       { problem_id: problem.id, student_response: 'x = 2, y = 5' },
       baseInput,
+    );
+    expect(outcome.isError).toBe(true);
+    expect(JSON.stringify(outcome.payload)).toContain('not a CHECK turn');
+  });
+
+  it('marks a correct answer', () => {
+    const outcome = executeTool(
+      'check_answer',
+      { problem_id: problem.id, student_response: 'x = 2, y = 5' },
+      { ...baseInput, intent: 'check' },
     );
     expect(outcome.payload).toEqual({ status: 'correct' });
     expect(outcome.events[0]).toMatchObject({ type: 'answer_checked' });
@@ -116,7 +127,7 @@ describe('check_answer', () => {
     const outcome = executeTool(
       'check_answer',
       { problem_id: problem.id, student_response: '(5, 2)' },
-      baseInput,
+      { ...baseInput, intent: 'check' },
     );
     expect(outcome.payload).toMatchObject({ status: 'incorrect', student_gave: '(5, 2)' });
   });
@@ -125,7 +136,7 @@ describe('check_answer', () => {
     const outcome = executeTool(
       'check_answer',
       { problem_id: problem.id, student_response: 'I substituted first' },
-      baseInput,
+      { ...baseInput, intent: 'check' },
     );
     const payload = outcome.payload as { status: string; note: string };
     expect(payload.status).toBe('unparseable');
@@ -137,7 +148,7 @@ describe('check_answer', () => {
     const outcome = executeTool(
       'check_answer',
       { problem_id: 'some.other.problem', student_response: '5' },
-      baseInput,
+      { ...baseInput, intent: 'check' },
     );
     expect(outcome.isError).toBe(true);
     expect(JSON.stringify(outcome.payload)).toContain('No active problem');
@@ -147,7 +158,7 @@ describe('check_answer', () => {
     const outcome = executeTool(
       'check_answer',
       { problem_id: problem.id, student_response: '5' },
-      { ...baseInput, problem: undefined },
+      { ...baseInput, problem: undefined, intent: 'check' },
     );
     expect(outcome.isError).toBe(true);
   });
@@ -213,8 +224,14 @@ describe('unknown tools', () => {
 });
 
 describe('give_hint', () => {
-  it('reveals the next hint in order and reports the running count', () => {
+  it('cannot spend a hint during an ordinary support turn', () => {
     const outcome = executeTool('give_hint', { hint_number: 1 }, baseInput);
+    expect(outcome.isError).toBe(true);
+    expect(JSON.stringify(outcome.payload)).toContain('not a HINT turn');
+  });
+
+  it('reveals the next hint in order and reports the running count', () => {
+    const outcome = executeTool('give_hint', { hint_number: 1 }, { ...baseInput, intent: 'hint' });
     expect(outcome.isError).toBe(false);
     expect(outcome.payload).toMatchObject({ hint_number: 1, hint: problem.hints[0], remaining: 2 });
     expect(outcome.events[0]).toEqual({ type: 'hint_given', hintNumber: 1, hintsUsed: 1 });
@@ -222,7 +239,7 @@ describe('give_hint', () => {
   });
 
   it('refuses to skip ahead', () => {
-    const outcome = executeTool('give_hint', { hint_number: 3 }, baseInput);
+    const outcome = executeTool('give_hint', { hint_number: 3 }, { ...baseInput, intent: 'hint' });
     expect(outcome.isError).toBe(true);
     expect(String((outcome.payload as { error: string }).error)).toContain('next is hint 1');
   });
@@ -231,7 +248,7 @@ describe('give_hint', () => {
     const outcome = executeTool(
       'give_hint',
       { hint_number: 4 },
-      { ...baseInput, hintsUsed: problem.hints.length },
+      { ...baseInput, hintsUsed: problem.hints.length, intent: 'hint' },
     );
     expect(outcome.isError).toBe(true);
     expect(String((outcome.payload as { error: string }).error)).toContain('All 3 hints');
@@ -239,13 +256,20 @@ describe('give_hint', () => {
 
   it('is not offered when the problem has no hints', () => {
     const bare = { ...problem, hints: [] };
-    expect(buildTools(skill, bare).map((t) => t.name)).not.toContain('give_hint');
-    expect(buildTools(skill, problem).map((t) => t.name)).toContain('give_hint');
+    expect(buildTools(skill, bare, 'hint').map((t) => t.name)).not.toContain('give_hint');
+    expect(buildTools(skill, problem, 'hint').map((t) => t.name)).toEqual(['give_hint']);
   });
 });
 
 describe('tool declarations', () => {
   const tools = buildTools(skill, problem);
+
+  it('constrains tools to the explicit turn intent', () => {
+    expect(buildTools(skill, problem, 'check').map((t) => t.name)).toEqual(['check_answer']);
+    expect(buildTools(skill, problem, 'hint').map((t) => t.name)).toEqual(['give_hint']);
+    expect(buildTools(skill, problem, 'ask').map((t) => t.name)).not.toContain('check_answer');
+    expect(buildTools(skill, problem, 'support').map((t) => t.name)).not.toContain('give_hint');
+  });
 
   it('offers exactly the render tools that have renderers', () => {
     const renderNames = tools.map((t) => t.name).filter((n) => n.startsWith('render_'));
@@ -296,6 +320,12 @@ describe('prompt assembly', () => {
     expect(SYSTEM_INSTRUCTION).toContain('never claim to have');
   });
 
+  it('defines explicit tool-first contracts for checking and hints', () => {
+    expect(SYSTEM_INSTRUCTION).toContain('Turn intent');
+    expect(SYSTEM_INSTRUCTION).toContain('Call **check_answer first**');
+    expect(SYSTEM_INSTRUCTION).toContain('Call **give_hint first**');
+  });
+
   it('names only implemented kinds as available', () => {
     expect(SYSTEM_INSTRUCTION).toContain('Available now: bar_model');
   });
@@ -342,7 +372,7 @@ describe('prompt assembly', () => {
       openingMessage: openingMessage(skill, problem),
     });
     expect(context).toContain('Already said');
-    expect(context).toContain('Describe it to me in your own words');
+    expect(context).toContain('What quantities are connected, and how?');
   });
 
   it('sends a one-line state on turns that do not carry the brief', () => {
@@ -353,10 +383,18 @@ describe('prompt assembly', () => {
       problem,
       hintsUsed: 2,
       priorMisconceptionCodes: [],
+      turnIntent: 'check',
     });
     expect(state).toContain('Stage: abstract');
     expect(state).toContain('Hints spent: 2 of 3');
-    expect(state.length).toBeLessThan(200);
+    expect(state).toContain('Turn intent: CHECK');
+    expect(state.length).toBeLessThan(300);
+  });
+
+  it('uses the authored prediction instead of a repetitive restatement prompt', () => {
+    const withPrediction = { ...problem, expect: 'What changes when the constant doubles?' };
+    expect(openingMessage(skill, withPrediction)).toContain(withPrediction.expect);
+    expect(openingMessage(skill, withPrediction)).not.toContain('own words');
   });
 
   it('fences the worked solution as reference only', () => {

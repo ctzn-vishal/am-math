@@ -1,7 +1,7 @@
 {
   "id": "dimensions-g8",
   "title": "Dimensions Math — Grade 8 / Secondary 2",
-  "description": "Singapore Secondary 2 mathematics, taught through the Concrete-Pictorial-Abstract sequence. Ported from the chapter outline in docs/, then authored unit by unit.",
+  "description": "Singapore Secondary 2 mathematics taught through concrete experiences, visual models and symbolic reasoning, with each new method connected to an idea the student can see and explain.",
   "level": "Secondary 2",
   "units": [
     {
@@ -29,7 +29,7 @@
     },
     {
       "id": "expansion",
-      "title": "Expansion and Factorization of Algebraic Expressions",
+      "title": "Expanding and Factorising Algebraic Expressions",
       "order": 3,
       "strand": "algebra",
       "skillIds": [
@@ -40,7 +40,7 @@
     },
     {
       "id": "quadratic-factorisation",
-      "title": "Quadratic Factorization and Equations",
+      "title": "Quadratic Factorisation and Equations",
       "order": 4,
       "strand": "algebra",
       "skillIds": [
@@ -108,7 +108,7 @@
     },
     {
       "id": "pythagoras",
-      "title": "Pythagorean Theorem",
+      "title": "Pythagoras' Theorem",
       "order": 10,
       "strand": "geometry",
       "skillIds": [

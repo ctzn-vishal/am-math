@@ -5,15 +5,14 @@ import type { CpaStage } from '@/lib/db/schema';
 /**
  * Where the lesson is in the CPA sequence.
  *
- * Read-only on purpose. The stage is the tutor's judgement about readiness, and letting a
- * student skip to the symbols because the blocks feel slow is exactly the failure the whole
- * method exists to prevent.
+ * Read-only, but written in student language. The formal CPA name remains in the tooltip
+ * and accessible label so the method is transparent without making the rail feel academic.
  */
 
 const STAGES: Array<{ id: CpaStage; label: string; hint: string }> = [
-  { id: 'concrete', label: 'Concrete', hint: 'Something you could hold' },
-  { id: 'pictorial', label: 'Pictorial', hint: 'A picture of it' },
-  { id: 'abstract', label: 'Abstract', hint: 'The symbols' },
+  { id: 'concrete', label: 'Handle it', hint: 'Concrete: something you could hold or act out' },
+  { id: 'pictorial', label: 'See it', hint: 'Pictorial: a drawing that shows the relationship' },
+  { id: 'abstract', label: 'Symbolise it', hint: 'Abstract: the mathematical symbols' },
 ];
 
 export function StageRail({ stage }: { stage: CpaStage }) {
@@ -36,6 +35,7 @@ export function StageRail({ stage }: { stage: CpaStage }) {
             <span
               title={s.hint}
               aria-current={active ? 'step' : undefined}
+              aria-label={`${s.hint}${active ? ', current stage' : passed ? ', completed' : ''}`}
               className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 active
                   ? 'bg-sage-500 text-paper'

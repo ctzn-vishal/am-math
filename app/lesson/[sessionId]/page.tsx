@@ -8,6 +8,7 @@ import {
 import { openingMessage } from '@/lib/tutor/prompt';
 import { visualSpecSchema, type VisualSpec } from '@/lib/visual/spec';
 import { Lesson, type Message } from '@/components/Lesson';
+import type { Answer } from '@/lib/content/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,15 +72,42 @@ export default async function LessonPage({
       key={`${sessionId}:${problem?.id ?? 'none'}`}
       sessionId={sessionId}
       skillTitle={skill.title}
+      skillGoal={skill.summary}
+      reference={{ ...skill.cpa, formulas: skill.formulas }}
       unitTitle={unitTitle}
       initialStage={context.stage}
       initialMessages={messages}
       initialHintsUsed={context.hintsUsed}
       hintCount={problem?.hints.length ?? 0}
       progress={progress}
-      {...(problem ? { problemStatement: problem.statement, problemId: problem.id } : {})}
+      {...(problem
+        ? {
+            problemStatement: problem.statement,
+            problemId: problem.id,
+            answerShape: answerShape(problem.answer),
+          }
+        : {})}
     />
   );
+}
+
+function answerShape(answer: Answer): string {
+  switch (answer.type) {
+    case 'number':
+      return answer.unit ? `A number in ${answer.unit}` : 'A number';
+    case 'coordinates':
+      return 'A coordinate pair, such as (2, 5)';
+    case 'set':
+      return 'Values separated by commas';
+    case 'expression':
+      return 'An algebraic expression';
+    case 'equation':
+      return 'An equation';
+    case 'choice':
+      return 'Your own answer first';
+    case 'exact':
+      return 'A short exact answer';
+  }
 }
 
 function parseStoredSpec(raw: string | null): VisualSpec | null {

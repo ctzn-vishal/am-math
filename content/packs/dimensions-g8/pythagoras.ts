@@ -9,31 +9,32 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
  * The through-line: $a^2 + b^2 = c^2$ is a statement about *areas* — the square built on
  * the hypotenuse holds exactly as many tiles as the two squares on the legs together. Once
  * it is an area fact, "which side is $c$" answers itself (the biggest square), and
- * subtracting to find a leg is obviously the only move that leaves a smaller square.
+ * subtracting to find a leg follows from removing one smaller square from the total.
  */
 
 export const pythagorasSkills: SkillNode[] = [
   {
     id: 'pythagoras.state-prove-pythagorean',
-    title: 'State and prove the Pythagorean Theorem',
+    title: 'Understand and prove Pythagoras\' theorem',
     summary:
       'See the theorem as a fact about three squares before it is a formula, and identify the ' +
       'hypotenuse as the side opposite the right angle.',
     prerequisites: [],
     cpa: {
       concrete:
-        'Unit square tiles. Build a right-angled triangle with legs 3 and 4. Lay a $3 \\times 3$ ' +
-        'square of tiles on one leg (9 tiles) and a $4 \\times 4$ square on the other (16). Now ' +
-        'pick up all 25 tiles and try to build a single square along the hypotenuse. It comes out ' +
-        '$5 \\times 5$ exactly — no tile left over, no gap.',
+        'Unit square tiles first show the claim in a 3–4–5 triangle: the 9 tiles on one leg and ' +
+        'the 16 on the other exactly fill the 25-tile square on the hypotenuse. Then use four ' +
+        'identical right-angled triangles with legs $a$ and $b$. Arrange them inside a square of ' +
+        'side $a+b$ so that the uncovered centre is a square of side $c$.',
       pictorial:
-        'The triangle with a square drawn outward on each side, each square labelled with its ' +
-        'area. The two smaller areas add to the largest. The biggest square is always on the ' +
-        'longest side, which is always opposite the right angle.',
+        'Draw the four-triangle arrangement and label its two descriptions of the same area: ' +
+        '$(a+b)^2$ for the outside square, and $4\\left(\\frac12ab\\right)+c^2$ for the four ' +
+        'triangles and centre square. Beside it, draw one square on each side of the triangle so ' +
+        'the resulting identity can be read as an area statement.',
       abstract:
-        '$a^2 + b^2 = c^2$, where $c$ is the hypotenuse. The squares in the formula are the ' +
-        'areas of the squares in the picture, which is why the relationship uses exponents at ' +
-        'all.',
+        'Equate the two areas: $(a+b)^2 = 4\\left(\\frac12ab\\right)+c^2$. Expanding and ' +
+        'cancelling $2ab$ gives $a^2+b^2=c^2$, where $c$ is the hypotenuse. Unlike the 3–4–5 ' +
+        'example, this argument works for every right-angled triangle.',
     },
     formulas: ['a^2 + b^2 = c^2'],
     misconceptions: [
@@ -94,16 +95,17 @@ export const pythagorasSkills: SkillNode[] = [
   },
   {
     id: 'pythagoras.converse-pythagorean-theorem',
-    title: 'Apply the Converse of the Pythagorean Theorem',
+    title: 'Use the converse of Pythagoras\' theorem',
     summary:
       'Decide whether a triangle is right-angled from its three side lengths alone by testing ' +
       'whether the two smaller squares add to the largest.',
     prerequisites: ['pythagoras.calculate-unknown-side'],
     cpa: {
       concrete:
-        'A loop of string with 12 equally spaced knots, pulled into a triangle with sides 3, 4 ' +
-        'and 5 knots. The corner between the 3 and the 4 is a right angle — this is how ancient ' +
-        'builders squared corners. Try 3, 4 and 6 knots: the corner opens out past a right angle.',
+        'A loop of cord marked into 12 equal intervals, pulled into a triangle with side lengths ' +
+        '3, 4 and 5 intervals. The corner between the 3 and the 4 is a right angle — a practical ' +
+        'way to square a corner. Compare it with a second loop marked into 13 intervals and made ' +
+        'into a 3–4–6 triangle: that corresponding corner opens beyond a right angle.',
       pictorial:
         'Three squares drawn on the sides with areas filled in. If the two smaller areas add ' +
         'exactly to the largest, the angle between the two shorter sides is $90°$. If they fall ' +
@@ -133,7 +135,7 @@ export const pythagorasSkills: SkillNode[] = [
   },
   {
     id: 'pythagoras.solve-applied-spatial',
-    title: 'Solve 2D and 3D applied spatial problems (space diagonals)',
+    title: 'Use Pythagoras\' theorem in 2D and 3D problems',
     summary:
       'Find right-angled triangles hiding inside a situation — a ladder, a box, a diagonal ' +
       'through a room — and chain two of them for a diagonal in three dimensions.',

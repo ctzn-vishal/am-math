@@ -15,7 +15,7 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
 export const functionGraphsSkills: SkillNode[] = [
   {
     id: 'function-graphs.graph-linear-functions',
-    title: 'Graph linear functions from gradient and intercept',
+    title: 'Plot straight lines from their gradient and intercept',
     summary:
       'Rearrange any linear equation to $y = mx + c$, read the gradient and intercept from it, ' +
       'and test whether a point lies on the line by substituting.',
@@ -54,7 +54,7 @@ export const functionGraphsSkills: SkillNode[] = [
   },
   {
     id: 'function-graphs.interpret-rate-change',
-    title: 'Interpret rate of change',
+    title: 'Read and compare rates of change',
     summary:
       'Read a gradient as "this much $y$ for every one of $x$", with units, and connect steeper ' +
       'lines to faster change and negative gradients to decrease.',
@@ -92,7 +92,7 @@ export const functionGraphsSkills: SkillNode[] = [
   },
   {
     id: 'function-graphs.graph-quadratic-functions',
-    title: 'Graph quadratic functions',
+    title: 'Plot quadratic graphs',
     summary:
       'Plot a parabola from a table of values, and predict from the sign of $a$ which way it ' +
       'opens before plotting a single point.',
@@ -130,7 +130,7 @@ export const functionGraphsSkills: SkillNode[] = [
   },
   {
     id: 'function-graphs.identify-vertices-axes',
-    title: 'Identify vertices, axes of symmetry, and intercepts of parabolas',
+    title: 'Find vertices, axes of symmetry and intercepts',
     summary:
       'Find the turning point from the axis of symmetry $x = -\\frac{b}{2a}$, and the ' +
       'intercepts by setting $x = 0$ and $y = 0$ in turn.',

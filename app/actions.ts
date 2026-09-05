@@ -2,7 +2,8 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { getProblem } from '@/lib/content';
+import { getProblem, getSkill } from '@/lib/content';
+import { openingMessage } from '@/lib/tutor/prompt';
 import {
   endSession,
   getProblemProgress,
@@ -55,14 +56,14 @@ export async function nextProblem(formData: FormData): Promise<void> {
   if (!progress.nextProblemId) return;
 
   const problem = getProblem(progress.nextProblemId);
-  if (!problem) return;
+  const skill = getSkill(context.skillId);
+  if (!problem || !skill) return;
 
   await switchProblem(sessionId, problem.id);
   await recordTurn(
     sessionId,
     'tutor',
-    `On to the next one — it is on the left now. Same as before: read it, and tell me what is ` +
-      `going on in it before you work anything out.`,
+    openingMessage(skill, problem, true),
   );
 
   revalidatePath(`/lesson/${sessionId}`);

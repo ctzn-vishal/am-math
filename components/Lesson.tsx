@@ -5,18 +5,21 @@ import Link from 'next/link';
 import {
   AlertTriangle,
   ArrowRight,
-  ArrowUp,
   Check,
   ChevronLeft,
+  CircleHelp,
   ImagePlus,
   Lightbulb,
   Loader2,
+  MessageCircle,
+  Shapes,
   X,
 } from 'lucide-react';
 import type { VisualSpec } from '@/lib/visual/spec';
 import type { TutorEvent } from '@/lib/tutor/engine';
 import type { CpaStage } from '@/lib/db/schema';
 import type { ProblemProgress } from '@/lib/session/service';
+import type { TurnIntent } from '@/lib/tutor/prompt';
 import { validateSpec } from '@/lib/visual/validate';
 import { finishLesson, nextProblem } from '@/app/actions';
 import { VisualCanvas } from './visual/VisualCanvas';
@@ -41,11 +44,14 @@ export interface Message {
   pending?: boolean;
   /** The marking tool's verdict on the answer this reply responds to. */
   verdict?: 'correct' | 'incorrect';
+  /** Why this student message was sent; shown when it prevents ambiguity. */
+  intent?: TurnIntent;
 }
 
 export interface LessonProps {
   sessionId: string;
   skillTitle: string;
+  skillGoal: string;
   unitTitle: string;
   initialStage: CpaStage;
   initialMessages: Message[];
@@ -54,11 +60,27 @@ export interface LessonProps {
   progress: ProblemProgress;
   problemStatement?: string;
   problemId?: string;
+  answerShape?: string;
+  reference: {
+    concrete: string;
+    pictorial: string;
+    abstract: string;
+    formulas: string[];
+  };
+}
+
+type MobileView = 'problem' | 'canvas' | 'tutor';
+
+interface SendOptions {
+  imageDataUrl?: string;
+  studentSpec?: VisualSpec;
+  intent?: TurnIntent;
 }
 
 export function Lesson({
   sessionId,
   skillTitle,
+  skillGoal,
   unitTitle,
   initialStage,
   initialMessages,
@@ -67,6 +89,8 @@ export function Lesson({
   progress,
   problemStatement,
   problemId,
+  answerShape,
+  reference,
 }: LessonProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [stage, setStage] = useState<CpaStage>(initialStage);
@@ -79,10 +103,22 @@ export function Lesson({
   const [image, setImage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<MobileView>('problem');
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const draftKey = `math-sage:draft:${sessionId}:${problemId ?? 'open'}`;
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(draftKey);
+    if (saved) setInput(saved);
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (input) window.localStorage.setItem(draftKey, input);
+    else window.localStorage.removeItem(draftKey);
+  }, [draftKey, input]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -95,13 +131,14 @@ export function Lesson({
   }, [busy]);
 
   const send = useCallback(
-    async (text: string, options: { imageDataUrl?: string; studentSpec?: VisualSpec } = {}) => {
-      const { imageDataUrl, studentSpec } = options;
+    async (text: string, options: SendOptions = {}) => {
+      const { imageDataUrl, studentSpec, intent = 'ask' } = options;
       if (busy) return;
       if (text.trim().length === 0 && !imageDataUrl && !studentSpec) return;
 
       setBusy(true);
       setError(null);
+      setMobileView('tutor');
 
       const studentId = crypto.randomUUID();
       const tutorId = crypto.randomUUID();
@@ -112,6 +149,7 @@ export function Lesson({
           id: studentId,
           role: 'student',
           text,
+          intent,
           ...(imageDataUrl ? { imageData: imageDataUrl } : {}),
           ...(studentSpec ? { spec: studentSpec } : {}),
         },
@@ -122,7 +160,7 @@ export function Lesson({
         const response = await fetch('/api/tutor', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, text, imageDataUrl, studentSpec }),
+          body: JSON.stringify({ sessionId, text, imageDataUrl, studentSpec, intent }),
         });
 
         if (!response.ok || !response.body) {
@@ -207,10 +245,10 @@ export function Lesson({
     [busy, sessionId, problemId],
   );
 
-  const handleSubmit = () => {
+  const handleSubmit = (intent: Extract<TurnIntent, 'ask' | 'check'> = 'ask') => {
     const text = input.trim();
     if (text.length === 0 && !image) return;
-    void send(text, image ? { imageDataUrl: image } : {});
+    void send(text, { ...(image ? { imageDataUrl: image } : {}), intent });
     setInput('');
     setImage(null);
     if (textRef.current) textRef.current.style.height = 'auto';
@@ -219,7 +257,20 @@ export function Lesson({
   /** Hand the tutor the figure itself, not a description of it. */
   const shareCanvas = () => {
     if (!spec) return;
-    void send('Here is my version of the diagram.', { studentSpec: spec });
+    void send('Here is my version of the diagram.', { studentSpec: spec, intent: 'canvas' });
+  };
+
+  const requestHint = () => {
+    if (busy || hintsUsed >= hintCount) return;
+    void send('I would like the next hint.', { intent: 'hint' });
+  };
+
+  const requestSupport = (kind: 'smaller' | 'visual') => {
+    const text =
+      kind === 'smaller'
+        ? 'Please make the current step smaller.'
+        : 'Please show this relationship visually.';
+    void send(text, { intent: 'support' });
   };
 
   /**
@@ -247,6 +298,59 @@ export function Lesson({
 
   return (
     <div className="flex h-dvh flex-col lg:flex-row">
+      <div className="shrink-0 border-b border-line bg-surface lg:hidden">
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          <Link
+            href="/"
+            aria-label="Back to all skills"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-ink-faint hover:bg-surface-sunk hover:text-ink"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+              {unitTitle}
+            </p>
+            <p className="truncate font-serif text-[15px] text-ink">{skillTitle}</p>
+          </div>
+          <form action={finishLesson}>
+            <input type="hidden" name="sessionId" value={sessionId} />
+            <button
+              type="submit"
+              className="min-h-11 rounded-lg px-2 text-[12px] font-medium text-ink-faint hover:bg-surface-sunk hover:text-ink"
+            >
+              Finish
+            </button>
+          </form>
+        </div>
+
+        <div className="grid grid-cols-3 gap-1 px-3 pb-2" role="tablist" aria-label="Lesson views">
+          {(
+            [
+              ['problem', 'Problem'],
+              ['canvas', 'Canvas'],
+              ['tutor', 'Tutor'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={mobileView === id}
+              disabled={id === 'canvas' && !spec}
+              onClick={() => setMobileView(id)}
+              className={`min-h-11 rounded-lg px-3 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
+                mobileView === id
+                  ? 'bg-sage-100 text-sage-700'
+                  : 'text-ink-faint hover:bg-surface-sunk hover:text-ink'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Canvas */}
       {/*
         Stacked below lg, the canvas is capped so the conversation always keeps roughly half
@@ -255,11 +359,9 @@ export function Lesson({
         opening, not a placeholder.
       */}
       <section
-        className={`flex min-h-0 shrink-0 flex-col border-b border-line bg-surface lg:h-full lg:max-h-none lg:w-[55%] lg:shrink lg:border-b-0 lg:border-r ${
-          spec ? 'max-h-[48dvh]' : 'max-h-[40dvh]'
-        }`}
+        className={`${mobileView === 'tutor' ? 'hidden' : 'flex'} min-h-0 flex-1 flex-col border-b border-line bg-surface lg:flex lg:h-full lg:max-h-none lg:w-[55%] lg:shrink lg:border-b-0 lg:border-r`}
       >
-        <header className="flex items-start gap-3 border-b border-line px-4 py-3 sm:px-5">
+        <header className="hidden items-start gap-3 border-b border-line px-4 py-3 sm:px-5 lg:flex">
           <Link
             href="/"
             aria-label="Back to all skills"
@@ -294,10 +396,22 @@ export function Lesson({
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
           {problemStatement && (
             <div
-              className={`mb-5 rounded-xl border px-4 py-3.5 ${
+              className={`${mobileView === 'canvas' ? 'hidden lg:block' : ''} mb-5 rounded-xl border px-4 py-3.5 ${
                 solved ? 'border-affirm/30 bg-affirm-soft' : 'border-line bg-surface-sunk'
               }`}
             >
+              <div className="mb-4 border-b border-line pb-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sage-600">
+                    Lesson goal
+                  </p>
+                  <p className="text-[11px] text-ink-faint">
+                    {progress.total} questions · about {Math.max(5, progress.total * 2)} min
+                  </p>
+                </div>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">{skillGoal}</p>
+              </div>
+
               <div className="mb-1.5 flex items-center justify-between gap-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
                   {progress.total > 1 ? `Problem ${progress.index} of ${progress.total}` : 'Problem'}
@@ -340,7 +454,7 @@ export function Lesson({
                     type="submit"
                     className="flex items-center gap-1.5 rounded-lg bg-sage-500 px-3.5 py-2 text-[13px] font-medium text-paper transition-opacity hover:opacity-90"
                   >
-                    That is every problem here — back to the course
+                    Finish this lesson
                     <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </form>
@@ -348,8 +462,45 @@ export function Lesson({
             </div>
           )}
 
-          {spec ? (
-            <>
+          <details
+            className={`${mobileView === 'canvas' ? 'hidden lg:block' : ''} mb-5 rounded-xl border border-line bg-surface`}
+          >
+            <summary className="min-h-11 cursor-pointer px-4 py-3 text-[12px] font-semibold text-sage-700">
+              Open the idea and key results
+            </summary>
+            <div className="space-y-3 border-t border-line px-4 py-4">
+              {(
+                [
+                  ['Handle it', reference.concrete],
+                  ['See it', reference.pictorial],
+                  ['Symbolise it', reference.abstract],
+                ] as const
+              ).map(([label, body]) => (
+                <div key={label}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+                    {label}
+                  </p>
+                  <MathText className="tutor-prose mt-1 text-[13px] leading-relaxed text-ink-soft">
+                    {body}
+                  </MathText>
+                </div>
+              ))}
+              {reference.formulas.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+                    Key results
+                  </p>
+                  <MathText className="tutor-prose mt-1 text-[13px] leading-relaxed text-ink-soft">
+                    {reference.formulas.map((formula) => `$${formula}$`).join(' · ')}
+                  </MathText>
+                </div>
+              )}
+            </div>
+          </details>
+
+          <div className={mobileView === 'problem' ? 'hidden lg:block' : ''}>
+            {spec ? (
+              <>
               <VisualCanvas spec={spec} onChange={setSpec} />
 
               {inconsistency && (
@@ -365,27 +516,38 @@ export function Lesson({
               >
                 Show the tutor my version
               </button>
-            </>
-          ) : (
-            <div className="hidden h-full min-h-40 flex-col items-center justify-center text-center lg:flex">
+              </>
+            ) : (
+            <div className="flex h-full min-h-40 flex-col items-center justify-center text-center">
               <p className="max-w-xs text-[14px] leading-relaxed text-ink-faint">
-                Figures the tutor draws will appear here, and you can rearrange them.
+                Ask the tutor to show the relationship visually. A figure you can work with
+                will appear here.
               </p>
             </div>
-          )}
+            )}
+          </div>
         </div>
       </section>
 
       {/* Conversation */}
-      <section className="flex min-h-0 flex-1 flex-col bg-paper">
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+      <section className={`${mobileView === 'tutor' ? 'flex' : 'hidden'} min-h-0 flex-1 flex-col bg-paper lg:flex`}>
+        <div
+          ref={scrollRef}
+          role="log"
+          aria-live="polite"
+          aria-busy={busy}
+          className="min-h-0 flex-1 overflow-y-auto px-5 py-6"
+        >
           <div className="mx-auto max-w-xl space-y-6">
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
 
             {error && (
-              <div className="flex items-start gap-2.5 rounded-xl border border-fault/30 bg-fault-soft px-4 py-3">
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-xl border border-fault/30 bg-fault-soft px-4 py-3"
+              >
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-fault" />
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium text-fault">The tutor could not reply</p>
@@ -413,6 +575,63 @@ export function Lesson({
 
         <div className="border-t border-line bg-surface px-5 py-4">
           <div className="mx-auto max-w-xl">
+            {!solved && (
+              <div className="mb-3 flex flex-wrap gap-2" aria-label="Learning support">
+                <button
+                  type="button"
+                  onClick={() => requestSupport('smaller')}
+                  disabled={busy}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-[12px] font-medium text-ink-soft hover:border-sage-400 hover:bg-sage-50 disabled:opacity-40"
+                >
+                  <CircleHelp className="h-3.5 w-3.5" />
+                  Smaller step
+                </button>
+                <button
+                  type="button"
+                  onClick={() => requestSupport('visual')}
+                  disabled={busy}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-[12px] font-medium text-ink-soft hover:border-sage-400 hover:bg-sage-50 disabled:opacity-40"
+                >
+                  <Shapes className="h-3.5 w-3.5" />
+                  Show it visually
+                </button>
+                {hintCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={requestHint}
+                    disabled={busy || hintsUsed >= hintCount}
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-query/30 bg-query-soft px-3 text-[12px] font-medium text-query hover:border-query disabled:opacity-40"
+                  >
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    {hintsUsed >= hintCount ? 'All hints used' : `Hint ${hintsUsed + 1} of ${hintCount}`}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {allDone && !busy && (
+              <div className="rounded-2xl border border-affirm/30 bg-affirm-soft p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-affirm">
+                  Lesson complete
+                </p>
+                <h2 className="mt-1 font-serif text-[18px] text-ink">You reached today&apos;s goal.</h2>
+                <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+                  You practised {skillTitle.toLowerCase()} across {progress.total} questions. Your
+                  answers and hint use have been saved so the course can choose a useful next step.
+                </p>
+                <form action={finishLesson} className="mt-3">
+                  <input type="hidden" name="sessionId" value={sessionId} />
+                  <button
+                    type="submit"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-sage-500 px-4 text-[13px] font-medium text-paper hover:opacity-90"
+                  >
+                    See what to learn next
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </form>
+              </div>
+            )}
+
             {image && (
               <div className="mb-3 flex items-center gap-3 rounded-lg border border-line bg-surface-sunk p-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -457,32 +676,47 @@ export function Lesson({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSubmit();
+                    handleSubmit(e.ctrlKey || e.metaKey ? 'check' : 'ask');
                   }
                 }}
                 rows={1}
                 placeholder={
-                  solved ? 'Say why it worked, or move on to the next problem…' : 'Say what you are thinking…'
+                  solved
+                    ? 'Ask about the solution or explain why it worked…'
+                    : 'Write your thinking, a question, or your final answer…'
                 }
+                aria-label="Your message or answer"
                 className="max-h-40 flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-relaxed text-ink outline-none placeholder:text-ink-faint"
               />
-
-              <button
-                onClick={handleSubmit}
-                disabled={busy || (input.trim().length === 0 && !image)}
-                className="mb-0.5 rounded-lg bg-sage-500 p-2 text-paper transition-opacity hover:opacity-90 disabled:opacity-25"
-                aria-label="Send"
-                type="button"
-              >
-                {busy ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArrowUp className="h-4 w-4" />
-                )}
-              </button>
             </div>
-            <p className="mt-2 text-[11px] text-ink-faint">
-              Enter to send · Shift+Enter for a new line · write maths like x^2 or 3/4
+
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="min-w-0 text-[11px] leading-relaxed text-ink-faint">
+                {answerShape ? `${answerShape} · ` : ''}write maths like x^2 or 3/4
+              </p>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  onClick={() => handleSubmit('ask')}
+                  disabled={busy || (input.trim().length === 0 && !image)}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-ink-soft hover:border-sage-400 hover:bg-sage-50 disabled:opacity-35"
+                  type="button"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Ask tutor
+                </button>
+                <button
+                  onClick={() => handleSubmit('check')}
+                  disabled={busy || solved || input.trim().length === 0}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-sage-500 px-3.5 text-[12px] font-medium text-paper hover:opacity-90 disabled:opacity-35"
+                  type="button"
+                >
+                  {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                  Check answer
+                </button>
+              </div>
+            </div>
+            <p className="mt-1.5 text-right text-[10px] text-ink-faint">
+              Enter asks · Ctrl/⌘+Enter checks · Shift+Enter adds a line
             </p>
           </div>
         </div>
@@ -495,7 +729,13 @@ function MessageBubble({ message }: { message: Message }) {
   if (message.role === 'student') {
     return (
       <div className="animate-rise flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-sage-100 px-4 py-2.5">
+        <div className="max-w-[85%]">
+          {message.intent === 'check' && (
+            <p className="mb-1 text-right text-[10px] font-semibold uppercase tracking-[0.1em] text-sage-600">
+              Answer submitted for checking
+            </p>
+          )}
+          <div className="rounded-2xl rounded-br-md bg-sage-100 px-4 py-2.5">
           {message.imageData && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -509,6 +749,7 @@ function MessageBubble({ message }: { message: Message }) {
               {message.text}
             </p>
           )}
+          </div>
         </div>
       </div>
     );

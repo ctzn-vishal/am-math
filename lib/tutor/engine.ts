@@ -5,7 +5,13 @@ import { parseVisualSpec } from '@/lib/visual/registry';
 import type { VisualSpec } from '@/lib/visual/spec';
 import { validateSpec, type SpecIssue } from '@/lib/visual/validate';
 import { checkAnswer, type CheckResult } from './check';
-import { buildLessonContext, buildTurnState, SYSTEM_INSTRUCTION, type LessonContext } from './prompt';
+import {
+  buildLessonContext,
+  buildTurnState,
+  SYSTEM_INSTRUCTION,
+  type LessonContext,
+  type TurnIntent,
+} from './prompt';
 import { buildTools, kindFromToolName } from './tools';
 
 /**
@@ -41,6 +47,8 @@ export type TutorEvent =
 export interface TurnInput {
   /** What the student typed. May be empty when they only attached an image. */
   text: string;
+  /** Explicit interaction contract chosen in the lesson UI. */
+  intent: TurnIntent;
   /** Data URL of an attached photo, e.g. their handwritten working. */
   imageDataUrl?: string;
   /**
@@ -157,6 +165,16 @@ export function executeTool(
   }
 
   if (name === 'check_answer') {
+    if (input.intent !== 'check') {
+      return {
+        payload: {
+          error: 'This is not a CHECK turn. Discuss the student\'s thinking without marking it.',
+        },
+        isError: true,
+        events: [],
+      };
+    }
+
     const problemId = String(args['problem_id'] ?? '');
     const response = String(args['student_response'] ?? '');
 
@@ -250,6 +268,16 @@ export function executeTool(
   }
 
   if (name === 'give_hint') {
+    if (input.intent !== 'hint') {
+      return {
+        payload: {
+          error: 'This is not a HINT turn. Narrow the question without spending a hint.',
+        },
+        isError: true,
+        events: [],
+      };
+    }
+
     const requested = Number(args['hint_number'] ?? 0);
     const hints = input.problem?.hints ?? [];
     const next = input.hintsUsed + 1;
@@ -304,8 +332,8 @@ function buildInitialInput(input: TurnInput): unknown {
   content.push({
     type: 'text',
     text: input.includeLessonContext
-      ? buildLessonContext(input as LessonContext)
-      : buildTurnState(input as LessonContext),
+      ? buildLessonContext({ ...input, turnIntent: input.intent } as LessonContext)
+      : buildTurnState({ ...input, turnIntent: input.intent } as LessonContext),
   });
 
   if (input.imageDataUrl) {
@@ -360,16 +388,27 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<TutorEvent> {
     return;
   }
 
-  const tools = buildTools(input.skill, input.problem);
   let nextInput: unknown = buildInitialInput(input);
   let previousInteractionId = input.previousInteractionId ?? undefined;
   let stage = input.stage;
   let hintsUsed = input.hintsUsed;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    // CHECK and HINT are single-tool transactions. Once that tool returns, remove every
+    // tool so the next model step must explain the one result instead of checking twice or
+    // spending several hints from one click.
+    const tools =
+      round > 0 && (input.intent === 'check' || input.intent === 'hint')
+        ? []
+        : buildTools(input.skill, input.problem, input.intent);
     const calls = new Map<number, PendingCall>();
     let interactionId: string | null = null;
     let sawText = false;
+    // On a committed answer or hint request, tool output is the source of truth. Hold back
+    // any model preamble on the first round so the student can never see a verdict or hint
+    // before the deterministic tool has actually run.
+    const requiredFirstTool =
+      round === 0 ? (input.intent === 'check' ? 'check_answer' : input.intent === 'hint' ? 'give_hint' : null) : null;
 
     try {
       // The SDK's streaming param and SSE event types are not exported, so the request is
@@ -379,7 +418,7 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<TutorEvent> {
       const stream = (await ai.interactions.create({
         model: TUTOR_MODEL,
         input: nextInput,
-        tools,
+        ...(tools.length > 0 ? { tools } : {}),
         stream: true,
         system_instruction: SYSTEM_INSTRUCTION,
         generation_config: { temperature: 0.7 },
@@ -423,7 +462,7 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<TutorEvent> {
             const text = String(delta['text'] ?? '');
             if (text.length > 0) {
               sawText = true;
-              yield { type: 'text', delta: text };
+              if (!requiredFirstTool) yield { type: 'text', delta: text };
             }
             continue;
           }
@@ -445,11 +484,32 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<TutorEvent> {
     if (interactionId) previousInteractionId = interactionId;
 
     if (calls.size === 0) {
+      if (requiredFirstTool) {
+        yield {
+          type: 'error',
+          message:
+            requiredFirstTool === 'check_answer'
+              ? 'The tutor did not check the submitted answer. Your answer was not marked; please try again.'
+              : 'The tutor did not record the hint request. No hint was spent; please try again.',
+        };
+        return;
+      }
       if (!sawText) {
         yield { type: 'error', message: 'The model returned an empty reply.' };
         return;
       }
       yield { type: 'done', interactionId: previousInteractionId ?? null };
+      return;
+    }
+
+    if (requiredFirstTool && ![...calls.values()].some((call) => call.name === requiredFirstTool)) {
+      yield {
+        type: 'error',
+        message:
+          requiredFirstTool === 'check_answer'
+            ? 'The tutor tried a different action instead of checking. Your answer was not marked; please try again.'
+            : 'The tutor tried a different action instead of giving the next hint. No hint was spent; please try again.',
+      };
       return;
     }
 

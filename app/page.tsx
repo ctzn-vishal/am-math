@@ -7,11 +7,17 @@ import { beginLesson } from './actions';
 export const dynamic = 'force-dynamic';
 
 const BAND_STYLE: Record<MasteryBand, { label: string; dot: string; text: string }> = {
-  unseen: { label: 'Not started', dot: 'bg-line-strong', text: 'text-ink-faint' },
-  developing: { label: 'Shaky', dot: 'bg-fault', text: 'text-fault' },
-  approaching: { label: 'Getting there', dot: 'bg-query', text: 'text-query' },
+  unseen: { label: 'New', dot: 'bg-line-strong', text: 'text-ink-faint' },
+  developing: { label: 'Needs practice', dot: 'bg-query', text: 'text-query' },
+  approaching: { label: 'Nearly secure', dot: 'bg-sage-400', text: 'text-sage-700' },
   secure: { label: 'Secure', dot: 'bg-affirm', text: 'text-affirm' },
 };
+
+const STAGE_LABEL = {
+  concrete: 'Handle it',
+  pictorial: 'See it',
+  abstract: 'Symbolise it',
+} as const;
 
 const STRAND_LABEL: Record<string, string> = {
   algebra: 'Algebra',
@@ -59,15 +65,8 @@ export default async function Dashboard() {
             Math Sage
           </h1>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-soft">
-            A one-to-one maths tutor for the Singapore <strong className="font-medium text-ink">Dimensions Math Grade 8</strong> course
-            (Secondary 2): {units.length} units and {pack.skills.length} skills, from exponents to
-            quadratic equations, data and mensuration.
-          </p>
-          <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-ink-soft">
-            Pick a skill and the tutor works one problem with you at a time. It draws figures
-            you can rearrange, asks rather than tells, and meets every idea three times — as
-            something you could hold, as a picture, and only then as symbols. Answers are
-            marked by the app, and what you get right shapes what is suggested next.
+            A calm, one-to-one tutor for Dimensions Math Grade 8. Work with objects, pictures
+            and symbols; ask questions freely; and check an answer only when you are ready.
           </p>
         </div>
 
@@ -92,7 +91,7 @@ export default async function Dashboard() {
         <section className="mb-12">
           <h2 className="mb-4 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
             <Clock className="h-3.5 w-3.5" />
-            Pick up where you left off
+            Today · continue learning
           </h2>
 
           <div className="grid gap-2.5 sm:grid-cols-3">
@@ -116,7 +115,7 @@ export default async function Dashboard() {
                     </p>
                     <p className="mt-3 flex items-center justify-between text-[12px] text-ink-faint">
                       <span>
-                        {session.stage} · {timeAgo(session.startedAt)}
+                        {STAGE_LABEL[session.stage]} · {timeAgo(session.startedAt)}
                       </span>
                       <span className="flex items-center gap-1 font-medium text-sage-700">
                         Continue
@@ -135,7 +134,7 @@ export default async function Dashboard() {
         <section className="mb-12">
           <h2 className="mb-4 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
             <Sparkles className="h-3.5 w-3.5" />
-            {started === 0 ? 'Start here' : 'Suggested next'}
+            {started === 0 ? 'Today · a good place to start' : 'Today · suggested next'}
           </h2>
 
           <div className="space-y-2.5">
@@ -174,7 +173,7 @@ export default async function Dashboard() {
       <section>
         <h2 className="mb-5 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
           <BookOpen className="h-3.5 w-3.5" />
-          The whole course
+          Explore the course
         </h2>
 
         <div className="space-y-1">
@@ -223,7 +222,7 @@ export default async function Dashboard() {
                               {skill.title}
                             </span>
                             <span className="mt-0.5 block text-[12px] text-ink-faint">
-                              {problemCount} {problemCount === 1 ? 'problem' : 'problems'}
+                              5–10 min lesson · {problemCount} practice problems available
                               {open ? ' · in progress' : ''}
                             </span>
                           </span>

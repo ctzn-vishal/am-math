@@ -16,7 +16,7 @@ import type { AngleDiagramSpec, CoordinatePlaneSpec } from '@/lib/visual/spec';
 export const congruenceSkills: SkillNode[] = [
   {
     id: 'congruence.identify-establish-congruence',
-    title: 'Identify and establish congruence in triangles using formal tests (SSS, SAS, AAS/ASA, RHS)',
+    title: 'Prove that triangles are congruent using SSS, SAS, ASA, AAS and RHS',
     summary:
       'Decide whether two triangles are copies of each other from three matched parts, and ' +
       'know which three are enough — and which three are not.',
@@ -57,7 +57,7 @@ export const congruenceSkills: SkillNode[] = [
   },
   {
     id: 'congruence.reflection-transformations-across',
-    title: 'Apply reflection transformations across coordinate axes and arbitrary lines',
+    title: 'Reflect points and shapes in a line',
     summary:
       'Reflect a point or shape in a mirror line by walking the same distance out the other side ' +
       'along a perpendicular, and read the rules for the axes and $y = x$ off that picture.',
@@ -101,7 +101,7 @@ export const congruenceSkills: SkillNode[] = [
   },
   {
     id: 'congruence.understand-similarity-coordinate',
-    title: 'Understand similarity and coordinate reflection mappings',
+    title: 'Distinguish similarity from congruence',
     summary:
       'Tell a similar shape from a congruent one by whether lengths are scaled or preserved, ' +
       'and use reflection being an isometry to reason about lengths without recomputing them.',
@@ -955,7 +955,7 @@ export const congruenceProblems: Problem[] = [
     },
     hints: [
       'When a point reflects over the diagonal line $y = x$, what happens to its $x$ and $y$ ' +
-        'values? Try it with a point that is easy to plot first.',
+        'values? Try a point on one of the axes first.',
       'The rule swaps the coordinates: $(x, y)$ becomes $(y, x)$. Nothing changes sign.',
       'Apply that to $A(1, 4)$.',
     ],
@@ -993,7 +993,7 @@ export const congruenceProblems: Problem[] = [
       abstract: 'Across $y = -x$: $(x, y) \\to (-y, -x)$ — swap, then change both signs.',
     },
     hints: [
-      'Test with an easy point: $(2, 0)$ lies on the $x$-axis. Where does it go across $y = -x$? (Down the $y$-axis to $(0, -2)$.)',
+      'Test a point on an axis: $(2, 0)$ lies on the $x$-axis. Where does it go across $y = -x$? (Down the $y$-axis to $(0, -2)$.)',
       'So the coordinates swap *and* both change sign.',
       'For $(1, 4)$: swap to $(4, 1)$, then negate both.',
     ],

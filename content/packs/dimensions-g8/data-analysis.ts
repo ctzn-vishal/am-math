@@ -16,20 +16,20 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
 export const dataAnalysisSkills: SkillNode[] = [
   {
     id: 'data-analysis.calculate-interpret-measures',
-    title: 'Calculate and interpret measures of central tendency (mean, median, mode) and spread (range, IQR)',
+    title: 'Find and interpret averages and measures of spread',
     summary:
       'Find the mean, median and mode of a dataset and say what each is telling you; measure ' +
       'spread with the range and, more robustly, the interquartile range.',
     prerequisites: [],
     cpa: {
       concrete:
-        'Each data value cut as a paper strip of that length. Lay them out in order of length ' +
-        'and the middle strip is the median — no calculation, just a position. Stack them all ' +
-        'end to end and cut the total into equal pieces for the mean. The strip length that ' +
-        'appears most often is the mode.',
+        'Make each data value as a paper strip of that length. Order the strips; the one in the ' +
+        'middle gives the median. Join all the strips end to end, then share that total length ' +
+        'equally among the same number of strips; the new common length is the mean. The strip ' +
+        'length that occurs most often is the mode.',
       pictorial:
-        'A dot plot of the values with the median marked as the middle dot and the mean as the ' +
-        'balance point of the dots. The range as the span from first dot to last.',
+        'A dot plot with the median marked at the middle value and the mean shown as the balance ' +
+        'point. Mark the range as the span from the smallest value to the largest.',
       abstract:
         'Mean $\\bar{x} = \\frac{\\sum x}{n}$; median is the middle value of the *sorted* list ' +
         '(mean of the middle two if $n$ is even); mode is the most frequent. Range $= \\max - ' +
@@ -56,7 +56,7 @@ export const dataAnalysisSkills: SkillNode[] = [
   },
   {
     id: 'data-analysis.construct-interpret-five-number',
-    title: 'Construct and interpret five-number summaries and box-and-whisker plots',
+    title: 'Construct and interpret box plots',
     summary:
       'Split a sorted dataset into quarters to get the minimum, quartiles, median and maximum, ' +
       'draw them as a box plot, and read the IQR as the width of the box.',
@@ -72,7 +72,8 @@ export const dataAnalysisSkills: SkillNode[] = [
       abstract:
         'Order the data. $Q_2$ is the median; $Q_1$ the median of the lower half, $Q_3$ of the ' +
         'upper half (excluding the median itself when $n$ is odd). ' +
-        '$\\text{IQR} = Q_3 - Q_1$ measures the spread of the middle 50%, unaffected by outliers.',
+        '$\\text{IQR} = Q_3 - Q_1$ measures the spread of the middle 50% and is much less ' +
+        'sensitive to extreme values than the range.',
     },
     formulas: ['\\text{IQR} = Q_3 - Q_1', '\\text{five-number: } \\min, Q_1, Q_2, Q_3, \\max'],
     misconceptions: [
@@ -95,7 +96,7 @@ export const dataAnalysisSkills: SkillNode[] = [
   },
   {
     id: 'data-analysis.calculate-estimated-mean',
-    title: 'Calculate an estimated mean for grouped frequency data',
+    title: 'Estimate the mean from grouped data',
     summary:
       'Estimate the mean of grouped data by standing in each interval\'s midpoint for its ' +
       'values, weighting by frequency, and say why the answer is only an estimate.',
@@ -134,7 +135,7 @@ export const dataAnalysisSkills: SkillNode[] = [
   },
   {
     id: 'data-analysis.identify-scatter-plot',
-    title: 'Identify scatter plot correlation patterns',
+    title: 'Interpret correlation in scatter plots',
     summary:
       'Read a scatter plot for positive, negative or no correlation, judge its strength from ' +
       'how tightly the points cluster, and draw a sensible line of best fit.',
@@ -462,9 +463,9 @@ export const dataAnalysisProblems: Problem[] = [
     ],
     solution:
       '$$\\text{range} = \\max - \\min = 20 - 4 = 16 \\text{ minutes}.$$\n\nThe range uses only the ' +
-      'two end values, so it is easy to find and easy to fool: change any of the six times in ' +
-      'between and the range does not move at all, while one unusually slow student changes it ' +
-      'completely.',
+      'two end values, so it is quick to find but highly sensitive to an extreme value: change ' +
+      'any of the six times in between and the range does not move, while one unusually slow ' +
+      'student can change it completely.',
     misconceptionCodes: ['data-analysis.median-of-unsorted'],
     figure: puzzleDotPlot,
   },
@@ -1542,14 +1543,15 @@ export const dataAnalysisProblems: Problem[] = [
       'The same 50 seedlings:\n\n' +
       '| Height $h$ (cm) | $0 \\le h < 10$ | $10 \\le h < 20$ | $20 \\le h < 30$ | $30 \\le h < 40$ |\n' +
       '| --- | --- | --- | --- | --- |\n| Number of seedlings | 7 | 20 | 13 | 10 |\n\n' +
-      'The midpoint method gives an estimated mean of $20.2$ cm. Suppose instead that every ' +
-      'seedling were as tall as its interval allows. What mean height would that give?',
+      'The midpoint method gives an estimated mean of $20.2$ cm. To explore the uncertainty, ' +
+      'use the upper boundary of each interval in place of every height in that interval. What ' +
+      'mean does this upper-bound calculation give?',
     answer: { type: 'number', value: 25.2, tolerance: 0.05, unit: 'cm' },
     cpaPrompts: {
       concrete:
-        'Push every seedling in a tray right up to the top of that tray\'s band: the 0–10 tray all ' +
-        'at 10 cm, the 10–20 tray all at 20 cm, and so on. Now share the total height out between ' +
-        'the 50 plants.',
+        'Place every seedling marker at the upper boundary of its tray: use 10 cm for the 0–10 ' +
+        'tray, 20 cm for the 10–20 tray, and so on. This is a boundary calculation, not a claim ' +
+        'that those were the measured heights. Now share the total between the 50 plants.',
       pictorial:
         'On the number line, slide each interval\'s marker from its centre to its right-hand end. ' +
         'The balance point of the bars slides right by the same amount every time — 5 cm.',
@@ -1567,9 +1569,9 @@ export const dataAnalysisProblems: Problem[] = [
       '(20)(20) + (30)(13) + (40)(10) = 70 + 400 + 390 + 400 = 1260$ cm over 50 seedlings, so the ' +
       'mean would be\n\n$$\\frac{1260}{50} = 25.2 \\text{ cm}.$$\n\nThe same sum with the *lower* ' +
       'ends gives $\\frac{760}{50} = 15.2$ cm. So all we can honestly say from the grouped table is ' +
-      'that the true mean lies between 15.2 cm and 25.2 cm; the midpoint answer of 20.2 cm is the ' +
-      'centre of that window, not a measured fact. **That** is why it is called an estimate: the ' +
-      'grouping destroyed the information needed to do better.',
+      'that the true mean is at least 15.2 cm but less than 25.2 cm; the midpoint answer of ' +
+      '20.2 cm is the centre of that window, not a measured fact. **That** is why it is called an ' +
+      'estimate: the grouping destroyed the information needed to do better.',
     misconceptionCodes: ['data-analysis.unweighted-midpoints'],
   },
 
@@ -2261,9 +2263,10 @@ export const dataAnalysisProblems: Problem[] = [
     ],
     solution:
       'The right answer is **B**. The two counts rise and fall together — a real, strong ' +
-      'correlation — and the obvious explanation is that hot sunny weather drives both: it sells ' +
-      'ice cream and it burns skin. A quantity like that, driving both variables but not plotted on ' +
-      'either axis, is called a lurking variable.\n\n**A** reads the correlation as causation. Ice ' +
+      'correlation — and a plausible explanation is that hot sunny weather drives both: it ' +
+      'increases ice-cream sales and sun exposure. A quantity like that, related to both plotted ' +
+      'variables but missing from the graph, is called a lurking variable. The graph makes this ' +
+      'explanation plausible; it does not prove it.\n\n**A** reads the correlation as causation. Ice ' +
       'cream is eaten, not worn; there is no mechanism, and banning it would not empty the burns ' +
       'clinic. A plot showing that two things move together can never, on its own, say which (if ' +
       'either) produces the other.\n\n**C** throws the whole plot away because 3 of the 30 weeks ' +

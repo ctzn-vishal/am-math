@@ -15,7 +15,7 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
 export const mensurationSkills: SkillNode[] = [
   {
     id: 'mensuration.calculate-surface-areas',
-    title: 'Calculate surface areas and volumes of right pyramids, cylinders, cones, and spheres',
+    title: 'Find surface areas and volumes of cylinders, cones, spheres and pyramids',
     summary:
       'Apply the standard formulas with the right dimensions in the right places, and know ' +
       'which formula is filling and which is wrapping.',
@@ -60,7 +60,7 @@ export const mensurationSkills: SkillNode[] = [
   },
   {
     id: 'mensuration.solve-problems-involving',
-    title: 'Solve problems involving composite 3D solids and hollow containers',
+    title: 'Find the volume and surface area of composite solids',
     summary:
       'Split a composite solid into standard pieces for volume, and count only the exposed ' +
       'faces for surface area — the join between two pieces is inside.',

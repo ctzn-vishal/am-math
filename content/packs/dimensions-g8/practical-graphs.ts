@@ -6,8 +6,8 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
  * Source: docs/Implementation Manual (walking a path with a stopwatch, slope profiles) and
  * the Chapter 9 worked examples in the content spec.
  *
- * The through-line: on a distance–time graph the *slope* is the speed, and on a speed–time
- * graph the slope is the acceleration and the *area* is the distance. Both are the same
+ * The through-line: on a distance–time graph the slope's *magnitude* is the speed, and on a
+ * speed–time graph the slope is the acceleration and the *area* is the distance. Both are the same
  * idea as gradient in Unit 8, but with units attached, and the units are what stop
  * "average the speeds" and "distance = speed × time" being applied where they do not hold.
  *
@@ -20,7 +20,7 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
 export const practicalGraphsSkills: SkillNode[] = [
   {
     id: 'practical-graphs.construct-interpret-distance-time',
-    title: 'Construct and interpret distance-time and speed-time graphs',
+    title: 'Draw and interpret distance–time and speed–time graphs',
     summary:
       'Draw a journey as a graph from its stages, and read a graph back as a journey: steep ' +
       'means fast, flat means stopped, and on a speed–time graph flat means steady.',
@@ -35,9 +35,9 @@ export const practicalGraphsSkills: SkillNode[] = [
         'and blue for slow, flat and green for stopped. The gradient of each section is written ' +
         'beside it with units.',
       abstract:
-        'Distance–time: gradient $= \\frac{\\Delta d}{\\Delta t}$ is speed; a horizontal section ' +
-        'is rest. Speed–time: gradient is acceleration; a horizontal section is constant speed, ' +
-        'not rest.',
+        'Distance–time: the magnitude of $\\frac{\\Delta d}{\\Delta t}$ is speed; its sign shows ' +
+        'direction when distance is measured from a fixed point. A horizontal section is rest. ' +
+        'Speed–time: gradient is acceleration; a horizontal section is constant speed, not rest.',
     },
     formulas: ['\\text{speed} = \\frac{\\Delta \\text{distance}}{\\Delta \\text{time}}'],
     misconceptions: [
@@ -59,20 +59,20 @@ export const practicalGraphsSkills: SkillNode[] = [
   },
   {
     id: 'practical-graphs.calculate-speed-average',
-    title: 'Calculate speed, average speed, and acceleration from graphical gradients',
+    title: 'Find speed, average speed and acceleration from graphs',
     summary:
       'Find the speed of each stage from its gradient, and the average speed of the whole ' +
       'journey from total distance over total time — rests included.',
     prerequisites: ['practical-graphs.construct-interpret-distance-time'],
     cpa: {
       concrete:
-        'A journey acted out: 30 paces in 15 seconds, stand still for 5 seconds, 20 paces in 10 ' +
-        'seconds. Count the total paces and read the stopwatch at the very end. The average is ' +
-        'those two numbers, and the standing-still seconds were on the clock.',
+        'A journey acted out: 30 paces in 15 seconds, stand still for 5 seconds, then continue ' +
+        'forward for 20 paces in 20 seconds. Count the total paces and read the stopwatch at the ' +
+        'very end. Average speed uses those two totals, including the standing-still seconds.',
       pictorial:
-        'The distance–time graph with a single straight line drawn from the start point to the ' +
-        'end point, cutting across the rest and the stages. The gradient of that one line is the ' +
-        'average speed.',
+        'Plot cumulative distance travelled against time, including a horizontal section for the ' +
+        'rest. A straight line from the first point to the last has gradient total distance over ' +
+        'total elapsed time: the average speed.',
       abstract:
         'Stage speed $= \\frac{\\text{distance}}{\\text{time}}$ for that stage. Average speed ' +
         '$= \\frac{\\text{total distance}}{\\text{total time}}$, never the mean of the stage ' +
@@ -99,22 +99,22 @@ export const practicalGraphsSkills: SkillNode[] = [
       {
         code: 'practical-graphs.average-of-speeds',
         description:
-          'Averages the stage speeds — $(20 + 20) / 2$ — instead of dividing total distance by ' +
-          'total time.',
+          'Averages the stage speeds — for example, $(60 + 30) / 2 = 45$ — instead of dividing ' +
+          'total distance by total elapsed time.',
         probe:
           'Suppose one stage lasted a minute and the other lasted an hour. Should they count the ' +
           'same in the average? What does the average speed have to be measured over?',
         correction:
-          'Stages of different length do not deserve equal weight. Total distance over total time ' +
-          'weights each stage by how long it took, which is what "average speed for the journey" ' +
-          'means.',
+          'Stages with different durations do not have equal weight. Total distance over total ' +
+          'time weights each stage by how long it lasted, which is what "average speed for the ' +
+          'journey" means.',
       },
     ],
     suggestedVisual: 'coordinate_plane',
   },
   {
     id: 'practical-graphs.interpret-conversion-practical',
-    title: 'Interpret conversion and practical rate graphs, and compute area under speed-time graphs',
+    title: 'Use conversion graphs and areas under speed–time graphs',
     summary:
       'Read a conversion graph in both directions, and find distance from a speed–time graph as ' +
       'the area under it, split into rectangles and triangles.',

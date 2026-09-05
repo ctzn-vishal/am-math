@@ -15,7 +15,7 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
 export const exponentsSkills: SkillNode[] = [
   {
     id: 'exponents.index-laws-positive',
-    title: 'Apply index laws for positive, zero, negative, and fractional exponents',
+    title: 'Use positive, zero, negative and fractional indices',
     summary:
       'Derive the index laws by counting factors rather than memorising them, and extend them to ' +
       'zero, negative and fractional powers without the rules changing.',
@@ -25,9 +25,9 @@ export const exponentsSkills: SkillNode[] = [
         'Fold a sheet of paper in half repeatedly and count the layers: 2, 4, 8, 16. Each fold ' +
         'does not *add* two, it *doubles* — and the exponent is a count of how many doublings, ' +
         'not a thing to multiply by. Then place-value discs on a decimal mat: sliding a disc one ' +
-        'column left is one more factor of ten, one column right is one fewer.\n\nSliding right ' +
-        'past the units column is where negative indices come from. Nothing new happens; the ' +
-        'student just keeps going.',
+        'column left is one more factor of ten, one column right is one fewer.\n\nContinuing ' +
+        'right past the units column shows the reciprocal pattern behind negative powers of ten: ' +
+        'each step still divides the value by ten.',
       pictorial:
         'An exponential number line, and a place-value chart the digits shift along. Multiplying ' +
         'by $10^n$ shifts $n$ columns — the decimal point is a fixed marker the digits move past, ' +
@@ -101,8 +101,10 @@ export const exponentsSkills: SkillNode[] = [
         'placed on it show that the gap between $10^3$ and $10^6$ is the same *kind* of gap as ' +
         'between $10^6$ and $10^9$.',
       abstract:
-        'Comparing $A \\times 10^m$ with $B \\times 10^n$: the exponents decide the answer unless ' +
-        'they are equal, in which case the coefficients do. The ratio is roughly $10^{m-n}$.',
+        'For positive quantities in standard form, compare the powers of ten first: a larger ' +
+        'exponent means a larger value, and equal exponents leave the coefficients to decide. ' +
+        'The exponent gap gives the scale of the ratio; the exact ratio is ' +
+        '$\\frac{A}{B}\\times 10^{m-n}$.',
     },
     formulas: ['\\frac{A \\times 10^m}{B \\times 10^n} = \\frac{A}{B} \\times 10^{m-n}'],
     misconceptions: [
@@ -122,7 +124,7 @@ export const exponentsSkills: SkillNode[] = [
   },
   {
     id: 'exponents.numbers-standard-scientific',
-    title: 'Express numbers in standard scientific notation',
+    title: 'Write numbers in standard form',
     summary:
       'Convert between ordinary and standard form, and know why the coefficient is pinned ' +
       'between 1 and 10.',
@@ -137,8 +139,9 @@ export const exponentsSkills: SkillNode[] = [
         'digits five columns left is exactly $\\times 10^5$; the exponent records how far they ' +
         'moved and in which direction.',
       abstract:
-        'Standard form is a *convention*, not a fact: $1 \\le |A| < 10$ exists so that every ' +
-        'number has exactly one representation and two numbers can be compared at a glance.',
+        'Standard form is a convention: requiring $1 \\le |A| < 10$ gives every non-zero number ' +
+        'one representation, with one non-zero digit before the decimal point. This makes powers ' +
+        'of ten easy to compare.',
     },
     formulas: ['A \\times 10^n, \\quad 1 \\le |A| < 10, \\quad n \\in \\mathbb{Z}'],
     misconceptions: [
@@ -168,7 +171,7 @@ export const exponentsSkills: SkillNode[] = [
   },
   {
     id: 'exponents.operations-scientific-notation',
-    title: 'Perform operations with scientific notation and round to significant figures',
+    title: 'Calculate with standard form and significant figures',
     summary:
       'Add, subtract, multiply and divide in standard form, and know why addition needs matched ' +
       'powers when multiplication does not.',
@@ -179,8 +182,9 @@ export const exponentsSkills: SkillNode[] = [
     cpa: {
       concrete:
         'Money. $\\$480{,}000$ and $\\$76{,}000$ cannot be added by adding 4.8 and 7.6 any more ' +
-        'than four £100 notes and seven £10 notes make eleven of anything. The student is asked ' +
-        'to make the units match before combining.',
+        'than four hundred-dollar notes and seven ten-dollar notes make eleven notes of one ' +
+        'value. Exchange the hundreds for tens first; in the same way, match the powers of ten ' +
+        'before combining.',
       pictorial:
         'Both numbers on one place-value chart, with the smaller shifted a column so the digits ' +
         'line up. Once the columns agree, the addition is ordinary.',
@@ -1071,9 +1075,9 @@ export const exponentsProblems: Problem[] = [
     ],
     solution:
       'Split the index with the product law and substitute:\n\n$$2^{x+1} = 2^x \\times 2^1 = ' +
-      '10 \\times 2 = 20.$$\n\nSame surface as the other items in this set, quite different ' +
-      'mathematics: no equation is solved and no index law is applied to a number — the given ' +
-      'value is simply carried through.',
+      '10 \\times 2 = 20.$$\n\nSame surface as the other items in this set, but different ' +
+      'mathematics: no equation is solved. The product law rewrites the expression so the given ' +
+      'value can be carried through unchanged.',
     misconceptionCodes: ['exponents.exponent-as-multiplier'],
   },
 

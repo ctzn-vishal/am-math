@@ -80,10 +80,10 @@ export const quadraticMethodsSkills: SkillNode[] = [
     prerequisites: ['quadratic-methods.solve-quadratic-equations'],
     cpa: {
       concrete:
-        'Complete the square on the tiles again, but this time with the coefficients left as ' +
-        'letters on the tiles: $a$ copies of $x^2$, $b$ copies of $x$. The same moves — divide ' +
-        'by $a$, halve the middle, fill the corner — produce the formula. Nothing new happened; ' +
-        'it was just done once for every quadratic at the same time.',
+        'Repeat the tile construction for several equations, including one whose leading ' +
+        'coefficient is not 1. Each time, divide first so there is one $x^2$ tile, split the ' +
+        '$x$-bars equally between two sides and fill the missing corner. Record the same moves ' +
+        'beside each example before replacing the numbers by $a$, $b$ and $c$.',
       pictorial:
         'The general area grid with headers $x$ and $\\frac{b}{2a}$, and the corner ' +
         '$\\frac{b^2}{4a^2}$ shaded. Beside it, the derivation lined up step by step against the ' +
@@ -128,7 +128,7 @@ export const quadraticMethodsSkills: SkillNode[] = [
   },
   {
     id: 'quadratic-methods.determine-number-real',
-    title: 'Determine the number of real roots using the discriminant',
+    title: 'Use the discriminant to count real roots',
     summary:
       'Read how many times a parabola crosses the $x$-axis from the sign of $b^2 - 4ac$ ' +
       'without solving the equation.',
@@ -165,7 +165,7 @@ export const quadraticMethodsSkills: SkillNode[] = [
   },
   {
     id: 'quadratic-methods.solve-fractional-geometric',
-    title: 'Solve fractional and geometric equations reducible to quadratic form',
+    title: 'Reduce fractional and geometric equations to quadratics',
     summary:
       'Clear fractions or set up a geometric relationship to reach $ax^2 + bx + c = 0$, solve ' +
       'with the formula, and reject any root the situation forbids.',

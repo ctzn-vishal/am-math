@@ -1,5 +1,6 @@
 import { IMPLEMENTED_KINDS, VISUAL_KINDS, jsonSchemaFor } from '@/lib/visual/registry';
 import type { Problem, SkillNode } from '@/lib/content/schema';
+import type { TurnIntent } from './prompt';
 
 /**
  * Tool declarations for the Interactions API.
@@ -52,7 +53,8 @@ const checkAnswerTool: ToolDeclaration = {
   type: 'function',
   name: 'check_answer',
   description:
-    'Mark a value the student has committed to. This is the only way to learn whether they are ' +
+    'Use only on a CHECK turn. Mark a value the student has deliberately committed to. ' +
+    'This is the only way to learn whether they are ' +
     'right — you cannot determine it yourself. Say nothing about correctness before calling this. ' +
     'A result of "unparseable" means we could not read their response, not that they were wrong.',
   parameters: {
@@ -130,7 +132,8 @@ function giveHintTool(problem: Problem): ToolDeclaration {
     type: 'function',
     name: 'give_hint',
     description:
-      'Reveal the next scaffolding hint for the current problem, and record that it was spent. ' +
+      'Use only on a HINT turn. Reveal the next scaffolding hint for the current problem, and ' +
+      'record that it was spent. ' +
       'Call this BEFORE you say anything that gives away what a hint contains - the count of hints ' +
       'used is what makes a later correct answer worth less, so an unrecorded hint flatters the ' +
       'student. Hints are spent strictly in order; the tool returns the text to work from. Do not ' +
@@ -155,16 +158,21 @@ function giveHintTool(problem: Problem): ToolDeclaration {
  * narrowed to codes that actually apply, which stops the model inventing plausible-looking
  * ones that no problem references. `give_hint` exists only when the problem has hints.
  */
-export function buildTools(skill: SkillNode | undefined, problem?: Problem): ToolDeclaration[] {
-  const tools: ToolDeclaration[] = [...renderTools(), checkAnswerTool, advanceStageTool];
+export function buildTools(
+  skill: SkillNode | undefined,
+  problem?: Problem,
+  intent: TurnIntent = 'ask',
+): ToolDeclaration[] {
+  // Constrain the model's action space to the contract chosen in the UI. This is both more
+  // reliable and cheaper than offering every tool and asking the prompt to resist them.
+  if (intent === 'check') return [checkAnswerTool];
+  if (intent === 'hint') return problem && problem.hints.length > 0 ? [giveHintTool(problem)] : [];
+
+  const tools: ToolDeclaration[] = [...renderTools(), advanceStageTool];
 
   // Offering the tool with no valid codes would invite invention.
   if (skill && skill.misconceptions.length > 0) {
     tools.push(logMisconceptionTool(skill));
-  }
-
-  if (problem && problem.hints.length > 0) {
-    tools.push(giveHintTool(problem));
   }
 
   return tools;

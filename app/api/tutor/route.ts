@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { visualSpecSchema } from '@/lib/visual/spec';
 import { runTurn, type TutorEvent } from '@/lib/tutor/engine';
 import { openingMessage } from '@/lib/tutor/prompt';
+import type { TurnIntent } from '@/lib/tutor/prompt';
 import {
   applyStageChange,
   getSessionContext,
@@ -33,11 +34,13 @@ interface TurnRequest {
   text?: unknown;
   imageDataUrl?: unknown;
   studentSpec?: unknown;
+  intent?: unknown;
 }
 
 const MAX_TEXT = 4000;
 /** ~4MB of base64, enough for a phone photo of a page of working. */
 const MAX_IMAGE = 5_600_000;
+const TURN_INTENTS = new Set<TurnIntent>(['ask', 'check', 'hint', 'support', 'canvas']);
 
 /**
  * Access is gated in `proxy.ts`, which checks the unlock cookie on every route including
@@ -55,6 +58,10 @@ export async function POST(request: Request): Promise<Response> {
 
   const sessionId = typeof body.sessionId === 'string' ? body.sessionId : '';
   const text = typeof body.text === 'string' ? body.text.slice(0, MAX_TEXT) : '';
+  const intent =
+    typeof body.intent === 'string' && TURN_INTENTS.has(body.intent as TurnIntent)
+      ? (body.intent as TurnIntent)
+      : 'ask';
   const imageDataUrl =
     typeof body.imageDataUrl === 'string' && body.imageDataUrl.length <= MAX_IMAGE
       ? body.imageDataUrl
@@ -84,6 +91,16 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     lesson = await resolveLesson(context);
+
+    if (intent === 'check' && !lesson.problem) {
+      return NextResponse.json({ error: 'There is no active problem to check.' }, { status: 409 });
+    }
+    if (
+      intent === 'hint' &&
+      (!lesson.problem || lesson.problem.hints.length === 0 || context.hintsUsed >= lesson.problem.hints.length)
+    ) {
+      return NextResponse.json({ error: 'There are no more hints for this problem.' }, { status: 409 });
+    }
 
     await recordTurn(sessionId, 'student', text, {
       ...(imageDataUrl ? { imageData: imageDataUrl } : {}),
@@ -119,6 +136,7 @@ export async function POST(request: Request): Promise<Response> {
       try {
         for await (const event of runTurn({
           text,
+          intent,
           ...(imageDataUrl ? { imageDataUrl } : {}),
           ...(studentSpec ? { studentSpec } : {}),
           previousInteractionId: context.lastInteractionId,

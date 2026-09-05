@@ -16,7 +16,7 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
 export const algebraicFractionsSkills: SkillNode[] = [
   {
     id: 'algebraic-fractions.simplify-algebraic-fractions',
-    title: 'Simplify algebraic fractions with polynomial numerators and denominators',
+    title: 'Simplify algebraic fractions by factorising',
     summary:
       'Factorise top and bottom completely, then cancel whole factors — and know why a term ' +
       'stuck to a plus sign can never be cancelled.',
@@ -25,9 +25,10 @@ export const algebraicFractionsSkills: SkillNode[] = [
       concrete:
         'Fraction strips. Lay a strip cut into 6 equal pieces under a strip cut into 9 and shade ' +
         '4 of the 6 and 6 of the 9: the shaded lengths match, which is what "equivalent" means. ' +
-        'Now the algebraic version: a strip labelled $2x(x+3)$ is built from three physical ' +
-        'factors laid end to end, and $(x-3)(x+3)$ from two. The $(x+3)$ piece can be lifted ' +
-        'off both because it is a whole piece on both — there is no piece marked $x^2$ to lift.',
+        'Now use factor cards: the numerator $2x(x+3)$ is a row of three cards joined by ' +
+        'multiplication signs, and the denominator $(x-3)(x+3)$ is a row of two. Dividing both ' +
+        'rows by the shared $(x+3)$ card removes one complete factor from each; there is no ' +
+        'complete $x^2$ factor in both rows to remove.',
       pictorial:
         'A tape diagram for numerator and denominator drawn as products: boxes side by side, one ' +
         'per factor. Cancelling is crossing out a box that appears in both rows. Writing ' +
@@ -58,7 +59,7 @@ export const algebraicFractionsSkills: SkillNode[] = [
   },
   {
     id: 'algebraic-fractions.four-operations-rational',
-    title: 'Perform four operations (+, -, ×, ÷) on rational expressions',
+    title: 'Use the four operations with algebraic fractions',
     summary:
       'Multiply and divide by working with factors; add and subtract only once both fractions ' +
       'are cut into the same-sized pieces.',
@@ -102,7 +103,7 @@ export const algebraicFractionsSkills: SkillNode[] = [
   },
   {
     id: 'algebraic-fractions.solve-fractional-equations',
-    title: 'Solve fractional equations reducible to linear or quadratic form',
+    title: 'Solve equations containing algebraic fractions',
     summary:
       'Clear every denominator in one move by multiplying the whole equation by the LCD, then ' +
       'solve what is left with the sign on each term intact.',
@@ -140,7 +141,7 @@ export const algebraicFractionsSkills: SkillNode[] = [
   },
   {
     id: 'algebraic-fractions.identify-restrictions-extraneous',
-    title: 'Identify restrictions and extraneous roots',
+    title: 'Identify restrictions and reject extraneous roots',
     summary:
       'Read off the values that make any denominator zero before solving, and throw out any ' +
       'solution that lands on one of them.',
@@ -848,7 +849,7 @@ export const algebraicFractionsProblems: Problem[] = [
         'fraction, then add the numerators.',
     },
     hints: [
-      'Do $x$ and $x+1$ have a common factor? If not, the LCD is simply their product.',
+      'Do $x$ and $x+1$ have a common factor? If not, their product is the LCD.',
       '$\\frac{3}{x} = \\frac{3(x+1)}{x(x+1)}$ and $\\frac{1}{x+1} = \\frac{x}{x(x+1)}$.',
       'Add the tops: $3(x+1) + x = 3x + 3 + x$. The bottom stays as $x(x+1) = x^2 + x$.',
     ],
@@ -1466,8 +1467,8 @@ export const algebraicFractionsProblems: Problem[] = [
     solution:
       'The LCD is $3x$, with $x \\ne 0$. Multiplying every term:\n\n$$12 - x = 3 \\implies x = 9.$$' +
       '\n\nCheck: $\\frac{4}{9} - \\frac{1}{3} = \\frac{4}{9} - \\frac{3}{9} = \\frac{1}{9}$, ' +
-      'and the right-hand side is $\\frac{1}{9}$. ✓ The constant term is where the marks go ' +
-      'missing: $-\\frac{1}{3}$ multiplied by $3x$ is $-x$, and the $x$ is easy to drop.',
+      'and the right-hand side is $\\frac{1}{9}$. ✓ The constant term is where the marks often ' +
+      'go missing: $-\\frac{1}{3}$ multiplied by $3x$ is $-x$, so that $x$ must stay in the equation.',
     misconceptionCodes: ['algebraic-fractions.sign-lost-in-bracket'],
   },
   {
@@ -1992,8 +1993,8 @@ export const algebraicFractionsProblems: Problem[] = [
     solution:
       'Rearranging $A = \\pi r l$ gives\n\n$$r = \\frac{A}{\\pi l}.$$\n\nSubstituting $A = 60\\pi$ ' +
       'and $l = 12$:\n\n$$r = \\frac{60\\pi}{12\\pi} = 5 \\text{ cm}.$$\n\nCheck: $\\pi \\times ' +
-      '5 \\times 12 = 60\\pi$. ✓ Leaving the $\\pi$ in symbol form until the end saves rounding ' +
-      'and makes the cancelling obvious.',
+      '5 \\times 12 = 60\\pi$. ✓ Leaving $\\pi$ in symbol form until the end avoids rounding and ' +
+      'keeps the shared factor visible.',
     misconceptionCodes: ['algebraic-fractions.cancel-terms-not-factors'],
   },
   {
@@ -2161,7 +2162,7 @@ export const algebraicFractionsProblems: Problem[] = [
       '$x - 3$:\n\n$$\\frac{x-2}{x-3} + \\frac{1}{x-3} = \\frac{(x-2) + 1}{x-3} = ' +
       '\\frac{x-1}{x-3},$$\n\nfor $x \\ne 3, -2$. Check at $x = 0$: $\\frac{2}{3} + ' +
       '\\left(-\\frac{1}{3}\\right) = \\frac{1}{3}$, and $\\frac{-1}{-3} = \\frac{1}{3}$. ✓ ' +
-      'Simplifying first turned an ugly common-denominator problem into an easy one.',
+      'Simplifying first turned a complicated common-denominator problem into a short addition.',
     misconceptionCodes: ['algebraic-fractions.add-tops-and-bottoms'],
   },
 

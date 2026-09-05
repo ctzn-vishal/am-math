@@ -16,7 +16,7 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
 export const quadraticFactorisationSkills: SkillNode[] = [
   {
     id: 'quadratic-factorisation.factorize-quadratic-trinomials',
-    title: 'Factorize quadratic trinomials by cross-multiplication and area methods',
+    title: 'Factorise quadratic trinomials',
     summary:
       'Factorise both monic and non-monic trinomials, and recognise which method the shape of the ' +
       'quadratic is asking for.',
@@ -69,7 +69,7 @@ export const quadraticFactorisationSkills: SkillNode[] = [
   },
   {
     id: 'quadratic-factorisation.solve-quadratic-equations',
-    title: 'Solve quadratic equations using the Zero Product Property',
+    title: 'Solve quadratic equations using the zero-product property',
     summary:
       'Turn a factorised quadratic into its roots, and understand why the property needs the ' +
       'equation set to zero first.',
@@ -119,7 +119,7 @@ export const quadraticFactorisationSkills: SkillNode[] = [
   },
   {
     id: 'quadratic-factorisation.model-real-world-scenarios',
-    title: 'Model real-world scenarios with quadratic equations',
+    title: 'Model situations with quadratic equations',
     summary:
       'Set up a quadratic from a situation, solve it, and judge which of the roots the situation ' +
       'actually admits.',
@@ -467,9 +467,9 @@ export const quadraticFactorisationProblems: Problem[] = [
     solution:
       '$$2x^2 - 5x - 3 = (2x + 1)(x - 3)$$\n\n' +
       'Cross-products $2 \\times (-3) = -6$ and $1 \\times 1 = 1$, giving $-5x$. ✓\n\n' +
-      'Notice what did **not** work: simply negating both signs of $(2x - 1)(x + 3)$ gives ' +
-      '$(2x + 1)(x - 3)$ only by accident here. With $a \\neq 1$ the two brackets are not ' +
-      'interchangeable, so each candidate has to be checked, not assumed.',
+      'There is a reason both signs changed from $(2x - 1)(x + 3)$: replacing $x$ by $-x$ ' +
+      'changes the sign of the middle term while leaving the $x^2$ term and constant unchanged. ' +
+      'Expanding is still the quickest check that the new factors match all three terms.',
     misconceptionCodes: ['quadratic.sign-pair-confusion', 'quadratic.monic-method-on-non-monic'],
   },
   {
@@ -1062,8 +1062,8 @@ export const quadraticFactorisationProblems: Problem[] = [
         'Suppose $x$ really were zero. Dividing both sides by $x$ would mean dividing by nothing ' +
         '— what happens to the answer you would have found?',
       pictorial:
-        'Sketch $y = x^2$ and $y = 7x$ on the same axes. They cross twice. Where is the second ' +
-        'crossing point, the one that is easy to miss?',
+        'Sketch $y = x^2$ and $y = 7x$ on the same axes. They cross twice. One crossing is away ' +
+        'from the axes; where is the other?',
       abstract:
         'Bring everything to one side: $x^2 - 7x = 0$, so $x(x - 7) = 0$. Never divide an ' +
         'equation by the unknown; move it instead.',

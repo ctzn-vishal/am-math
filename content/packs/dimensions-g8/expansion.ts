@@ -15,7 +15,7 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
 export const expansionSkills: SkillNode[] = [
   {
     id: 'expansion.expand-products-algebraic',
-    title: 'Expand products of algebraic expressions using the Distributive Law',
+    title: 'Expand products of algebraic expressions',
     summary:
       'Multiply out brackets by totalling the areas of the pieces, and know why every term in ' +
       'one bracket has to meet every term in the other.',
@@ -65,7 +65,7 @@ export const expansionSkills: SkillNode[] = [
   },
   {
     id: 'expansion.special-algebraic-identities',
-    title: 'Apply special algebraic identities (perfect squares and difference of squares)',
+    title: 'Use perfect-square and difference-of-squares identities',
     summary:
       'Recognise $(a \\pm b)^2$ and $(a+b)(a-b)$ on sight, and be able to rebuild each from its ' +
       'picture rather than recalling it.',
@@ -117,7 +117,7 @@ export const expansionSkills: SkillNode[] = [
   },
   {
     id: 'expansion.factorize-expressions-grouping',
-    title: 'Factorize expressions by grouping and using special products',
+    title: 'Factorise by grouping and special products',
     summary:
       'Read the area picture backwards: given the pieces, find the sides. Includes grouping when ' +
       'no single identity applies to the whole expression.',

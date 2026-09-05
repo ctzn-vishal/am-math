@@ -16,7 +16,7 @@ import type { AngleDiagramSpec } from '@/lib/visual/spec';
 export const parallelAnglesSkills: SkillNode[] = [
   {
     id: 'parallel-angles.angle-properties-parallel',
-    title: 'Apply angle properties of parallel lines intersected by transversals (F, Z, C angles)',
+    title: 'Use angle facts for parallel lines and transversals',
     summary:
       'Spot corresponding, alternate and co-interior angle pairs by the letter shape they make, ' +
       'and know which pairs are equal and which add to $180°$.',
@@ -73,7 +73,7 @@ export const parallelAnglesSkills: SkillNode[] = [
   },
   {
     id: 'parallel-angles.calculate-interior-exterior',
-    title: 'Calculate interior and exterior angles of triangles and regular/irregular polygons',
+    title: 'Find interior and exterior angles of triangles and polygons',
     summary:
       'Use that the exterior angles of any polygon add to one full turn, and that interior ' +
       'and exterior angles at a vertex add to a straight line, to find any polygon angle.',
@@ -130,7 +130,7 @@ export const parallelAnglesSkills: SkillNode[] = [
   },
   {
     id: 'parallel-angles.solve-multi-step-geometric',
-    title: 'Solve multi-step geometric deductive problems',
+    title: 'Build multi-step geometric arguments',
     summary:
       'Chain angle facts across a figure, writing a reason for every step, until the unknown ' +
       'is reached.',

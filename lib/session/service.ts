@@ -169,6 +169,9 @@ export interface ProblemProgress {
   nextProblemId: string | null;
 }
 
+/** A lesson is a useful sitting, not the entire problem bank. */
+export const LESSON_PROBLEM_TARGET = 5;
+
 /**
  * Where the session is in the skill's problem bank. "Next" is the first problem not yet
  * solved in this session, in bank order, so a student who skips one is brought back to it.
@@ -183,16 +186,22 @@ export async function getProblemProgress(context: SessionContext): Promise<Probl
   const solved = new Set(solvedRows.map((r) => r.problemId).filter((p): p is string => p !== null));
 
   const index = problems.findIndex((p) => p.id === context.problemId);
-  const next =
-    problems.find((p, i) => i > index && !solved.has(p.id)) ??
-    problems.find((p) => p.id !== context.problemId && !solved.has(p.id)) ??
-    null;
+  const lessonTotal = Math.min(LESSON_PROBLEM_TARGET, problems.length);
+  const currentSolved = context.problemId !== null && solved.has(context.problemId);
+  // While the current question is open, include it in the projected completion count. This
+  // makes question five end the lesson as soon as it is marked, instead of offering a sixth.
+  const completeAfterCurrent = solved.size + (currentSolved ? 0 : 1) >= lessonTotal;
+  const next = completeAfterCurrent
+    ? null
+    : problems.find((p, i) => i > index && !solved.has(p.id)) ??
+      problems.find((p) => p.id !== context.problemId && !solved.has(p.id)) ??
+      null;
 
   return {
-    index: index >= 0 ? index + 1 : 0,
-    total: problems.length,
+    index: problems.length > 0 ? Math.min(solved.size + (currentSolved ? 0 : 1), lessonTotal) : 0,
+    total: lessonTotal,
     solvedIds: [...solved],
-    currentSolved: context.problemId !== null && solved.has(context.problemId),
+    currentSolved,
     nextProblemId: next?.id ?? null,
   };
 }

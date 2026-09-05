@@ -15,7 +15,7 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
 export const linearSystemsSkills: SkillNode[] = [
   {
     id: 'linear-systems.model-real-world-relationships',
-    title: 'Model real-world relationships with two linear variables',
+    title: 'Model linear relationships with two variables',
     summary:
       'Turn a situation with two unknown quantities into a pair of equations, and read a pair of ' +
       'equations back as a situation.',
@@ -51,7 +51,7 @@ export const linearSystemsSkills: SkillNode[] = [
   },
   {
     id: 'linear-systems.solve-simultaneous-linear',
-    title: 'Solve simultaneous linear equations by substitution, elimination and graphing',
+    title: 'Solve simultaneous equations by substitution, elimination and graphing',
     summary:
       'Three methods for the same job, and a sense of which one the shape of a system is asking for.',
     prerequisites: ['linear-systems.model-real-world-relationships'],
@@ -114,7 +114,7 @@ export const linearSystemsSkills: SkillNode[] = [
   },
   {
     id: 'linear-systems.formulate-solve-applied',
-    title: 'Formulate and solve applied word problems',
+    title: 'Model and solve problems with simultaneous equations',
     summary:
       'Go from prose to a system, solve it, and check the answer against the situation rather than ' +
       'against the algebra.',
@@ -1427,7 +1427,7 @@ export const linearSystemsProblems: Problem[] = [
       'The $y$-terms are opposite, so adding removes them:\n\n$$(2x + y) + (x - y) = -1 + (-5) ' +
       '\\implies 3x = -6 \\implies x = -2.$$\n\nSubstituting into (1): $-4 + y = -1$, so $y = 3$. ' +
       'Check in (2): $-2 - 3 = -5$ ✓.\n\n$$(x, y) = (-2, 3)$$\n\nA negative answer is not a ' +
-      'mistake to be corrected — the arithmetic simply has to be done with care on both sides.',
+      'mistake to be corrected. Check it in both original equations; here it satisfies each one.',
     misconceptionCodes: ['linear-systems.sign-on-elimination'],
   },
   {

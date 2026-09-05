@@ -19,7 +19,7 @@ import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib
 export const coordinateGeometrySkills: SkillNode[] = [
   {
     id: 'coordinate-geometry.calculate-length-midpoint',
-    title: 'Calculate the length and midpoint of a line segment using coordinates',
+    title: 'Find lengths and midpoints from coordinates',
     summary:
       'Find the length of a segment as the hypotenuse of its across-and-up triangle, and its ' +
       'midpoint by averaging the coordinates of its ends.',
@@ -60,7 +60,7 @@ export const coordinateGeometrySkills: SkillNode[] = [
   },
   {
     id: 'coordinate-geometry.find-gradient-line',
-    title: 'Find the gradient of a line segment and derive straight line equations',
+    title: 'Find gradients and equations of straight lines',
     summary:
       'Compute a gradient from two points as rise over run, and write the equation of a line ' +
       'from a gradient and one point on it.',
@@ -99,17 +99,17 @@ export const coordinateGeometrySkills: SkillNode[] = [
   },
   {
     id: 'coordinate-geometry.parallel-perpendicular-line',
-    title: 'Apply the parallel and perpendicular line conditions',
+    title: 'Recognise parallel and perpendicular lines from their gradients',
     summary:
       'Recognise parallel lines by equal gradients and perpendicular lines by gradients that ' +
       'multiply to $-1$, and see the second fact as a quarter-turn of the slope triangle.',
     prerequisites: ['coordinate-geometry.find-gradient-line'],
     cpa: {
       concrete:
-        'Cut the slope triangle out of card — 4 along, 3 up. Slide it along the line: parallel ' +
-        'lines are the ones it fits without turning. Now rotate the card a quarter turn: the 4 is ' +
-        'vertical and the 3 is horizontal, and the line it lies along is perpendicular to the ' +
-        'first. Its slope is $\\frac{4}{3}$, the original was $-\\frac{3}{4}$.',
+        'Cut a slope triangle out of card — 4 along, 3 up — so its gradient is $\\frac{3}{4}$. ' +
+        'Slide it along the line: parallel lines are the ones it fits without turning. Now rotate ' +
+        'the card a quarter turn. The 4 is vertical, the 3 is horizontal and one direction has ' +
+        'reversed, so the perpendicular gradient is $-\\frac{4}{3}$.',
       pictorial:
         'A line with its slope triangle, and the same triangle rotated $90°$ drawn on the ' +
         'perpendicular. Rise and run have swapped places and one sign has flipped.',
@@ -138,7 +138,7 @@ export const coordinateGeometrySkills: SkillNode[] = [
   },
   {
     id: 'coordinate-geometry.find-equations-perpendicular',
-    title: 'Find equations of perpendicular bisectors',
+    title: 'Find the equation of a perpendicular bisector',
     summary:
       'Combine the midpoint, the gradient and the perpendicular condition to write the equation ' +
       'of the line that cuts a segment in half at right angles.',
