@@ -100,6 +100,11 @@ For one student to work through Secondary 2 with this and nothing else:
 The largest single item, by far, is the problem bank. Everything else is a week or less;
 the bank is the course.
 
+## The full authoring brief
+
+The per-skill problem-set specifications, the tier structure and the research behind them
+are in [PROBLEM-SET-GUIDE.md](PROBLEM-SET-GUIDE.md).
+
 ## How to author against this
 
 The reference unit is `content/packs/dimensions-g8/linear-systems.ts`. The standard is
