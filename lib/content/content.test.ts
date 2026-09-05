@@ -111,6 +111,12 @@ describe('authored units', () => {
     });
   }
 
+  it('keeps titles as plain text, since they appear where maths cannot be rendered', () => {
+    const latex = /[$\\]/;
+    for (const skill of getPack().skills) expect(skill.title, skill.id).not.toMatch(latex);
+    for (const unit of getPack().units) expect(unit.title, unit.id).not.toMatch(latex);
+  });
+
   it('gives every skill at least one problem it can be marked on', () => {
     for (const skill of getPack().skills) {
       expect(problemsForSkill(skill.id).length, `${skill.id} has no problems`).toBeGreaterThan(0);

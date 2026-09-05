@@ -56,7 +56,7 @@ export const quadraticMethodsSkills: SkillNode[] = [
   },
   {
     id: 'quadratic-methods.derive-quadratic-formula',
-    title: 'Derive and apply the Quadratic Formula: x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
+    title: 'Derive and apply the quadratic formula',
     summary:
       'See the formula as completing the square on $ax^2 + bx + c = 0$ in general, and apply ' +
       'it with every sign handled correctly.',
@@ -96,7 +96,7 @@ export const quadraticMethodsSkills: SkillNode[] = [
   },
   {
     id: 'quadratic-methods.determine-number-real',
-    title: 'Determine number of real roots using the discriminant (\\Delta = b^2 - 4ac)',
+    title: 'Determine the number of real roots using the discriminant',
     summary:
       'Read how many times a parabola crosses the $x$-axis from the sign of $b^2 - 4ac$ ' +
       'without solving the equation.',

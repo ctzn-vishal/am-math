@@ -16,7 +16,7 @@ import type { Problem, SkillNode } from '@/lib/content/schema';
 export const quadraticFactorisationSkills: SkillNode[] = [
   {
     id: 'quadratic-factorisation.factorize-quadratic-trinomials',
-    title: 'Factorize quadratic trinomials $ax^2 + bx + c$ by cross-multiplication and area methods',
+    title: 'Factorize quadratic trinomials by cross-multiplication and area methods',
     summary:
       'Factorise both monic and non-monic trinomials, and recognise which method the shape of the ' +
       'quadratic is asking for.',

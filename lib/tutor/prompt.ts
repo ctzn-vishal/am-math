@@ -124,7 +124,7 @@ export interface LessonContext {
  */
 export function openingMessage(skill: SkillNode, problem: Problem | undefined): string {
   return (
-    `We're looking at **${skill.title.toLowerCase()}**.\n\n` +
+    `We're looking at **${skill.title}**.\n\n` +
     (problem
       ? `Have a read of the problem on the left. Before working anything out — what is ` +
         `actually going on in it? Describe it to me in your own words.`

@@ -15,7 +15,7 @@ import type { Problem, SkillNode } from '@/lib/content/schema';
 export const pythagorasSkills: SkillNode[] = [
   {
     id: 'pythagoras.state-prove-pythagorean',
-    title: 'State and prove the Pythagorean Theorem ($a^2 + b^2 = c^2$)',
+    title: 'State and prove the Pythagorean Theorem',
     summary:
       'See the theorem as a fact about three squares before it is a formula, and identify the ' +
       'hypotenuse as the side opposite the right angle.',

@@ -122,7 +122,7 @@ export const exponentsSkills: SkillNode[] = [
   },
   {
     id: 'exponents.numbers-standard-scientific',
-    title: 'Express numbers in standard scientific notation $A \\times 10^n$ where $1 \\le |A| < 10$',
+    title: 'Express numbers in standard scientific notation',
     summary:
       'Convert between ordinary and standard form, and know why the coefficient is pinned ' +
       'between 1 and 10.',

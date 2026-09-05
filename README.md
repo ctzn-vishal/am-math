@@ -44,6 +44,7 @@ refuses to start rather than silently discarding a student's progress.
 | `npm test` | Vitest |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run db:studio` | Drizzle Studio against whatever the app is pointed at |
+| `node --env-file=.env.local scripts/reset-progress.mjs --yes` | Wipe all sessions and mastery (for clearing trial runs) |
 
 ## How it fits together
 
@@ -123,4 +124,5 @@ solved problem offers *Next problem*. Hints are spent through a `give_hint` tool
 count that discounts a later correct answer is exact rather than inferred from turn counts.
 The dashboard offers to resume any lesson that was left mid-problem.
 
-See [docs/REBUILD-PLAN.md](docs/REBUILD-PLAN.md) for the full plan and phasing.
+See [docs/REBUILD-PLAN.md](docs/REBUILD-PLAN.md) for the plan and phasing, and
+[docs/COURSE-NOTES.md](docs/COURSE-NOTES.md) for what a full course still needs.

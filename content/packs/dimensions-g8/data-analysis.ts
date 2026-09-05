@@ -95,7 +95,7 @@ export const dataAnalysisSkills: SkillNode[] = [
   },
   {
     id: 'data-analysis.calculate-estimated-mean',
-    title: 'Calculate estimated mean for grouped frequency data (\\bar{x} = \\frac{\\sum fx}{\\sum f})',
+    title: 'Calculate an estimated mean for grouped frequency data',
     summary:
       'Estimate the mean of grouped data by standing in each interval\'s midpoint for its ' +
       'values, weighting by frequency, and say why the answer is only an estimate.',

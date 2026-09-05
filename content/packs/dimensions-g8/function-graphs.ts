@@ -15,7 +15,7 @@ import type { Problem, SkillNode } from '@/lib/content/schema';
 export const functionGraphsSkills: SkillNode[] = [
   {
     id: 'function-graphs.graph-linear-functions',
-    title: 'Graph linear functions using gradient-intercept methods ($y = mx + c$)',
+    title: 'Graph linear functions from gradient and intercept',
     summary:
       'Rearrange any linear equation to $y = mx + c$, read the gradient and intercept from it, ' +
       'and test whether a point lies on the line by substituting.',
@@ -92,7 +92,7 @@ export const functionGraphsSkills: SkillNode[] = [
   },
   {
     id: 'function-graphs.graph-quadratic-functions',
-    title: 'Graph quadratic functions $y = ax^2 + bx + c$',
+    title: 'Graph quadratic functions',
     summary:
       'Plot a parabola from a table of values, and predict from the sign of $a$ which way it ' +
       'opens before plotting a single point.',

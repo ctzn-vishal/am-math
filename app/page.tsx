@@ -59,8 +59,15 @@ export default async function Dashboard() {
             Math Sage
           </h1>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-soft">
-            Work through a skill with a tutor that draws. Every idea is met three times — as
-            something you could hold, as a picture, and only then as symbols.
+            A one-to-one maths tutor for the Singapore <strong className="font-medium text-ink">Dimensions Math Grade 8</strong> course
+            (Secondary 2): {units.length} units and {pack.skills.length} skills, from exponents to
+            quadratic equations, data and mensuration.
+          </p>
+          <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-ink-soft">
+            Pick a skill and the tutor works one problem with you at a time. It draws figures
+            you can rearrange, asks rather than tells, and meets every idea three times — as
+            something you could hold, as a picture, and only then as symbols. Answers are
+            marked by the app, and what you get right shapes what is suggested next.
           </p>
         </div>
 

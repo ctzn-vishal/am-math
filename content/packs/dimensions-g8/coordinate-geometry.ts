@@ -95,7 +95,7 @@ export const coordinateGeometrySkills: SkillNode[] = [
   },
   {
     id: 'coordinate-geometry.parallel-perpendicular-line',
-    title: 'Apply parallel ($m_1 = m_2$) and perpendicular ($m_1 m_2 = -1$) line conditions',
+    title: 'Apply the parallel and perpendicular line conditions',
     summary:
       'Recognise parallel lines by equal gradients and perpendicular lines by gradients that ' +
       'multiply to $-1$, and see the second fact as a quarter-turn of the slope triangle.',
