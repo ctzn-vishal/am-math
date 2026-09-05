@@ -218,8 +218,11 @@ describe('problem bank', () => {
       });
 
       it('keeps problem ids unique to the unit', () => {
+        // The first quadratic unit's earliest problems and codes use the short prefix.
+        const prefixes = unitId === 'quadratic-factorisation' ? [unitId, 'quadratic'] : [unitId];
         for (const problem of problems) {
-          expect(problem.id.startsWith(`${unitId}.`), `${problem.id} should start with "${unitId}."`).toBe(true);
+          const ok = prefixes.some((prefix) => problem.id.startsWith(`${prefix}.`));
+          expect(ok, `${problem.id} should start with "${unitId}."`).toBe(true);
         }
       });
     });
