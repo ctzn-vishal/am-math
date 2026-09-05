@@ -524,8 +524,16 @@ export function fitToRatioForTest(
   return { top: 44 + (maxHeight - drawnHeight) / 2, height: drawnHeight, halfWidth };
 }
 
+/**
+ * The slant footnote is shown only when the figure opts into the slant triangle.
+ *
+ * It states `l = √(r² + h²) = ...`, which is the whole answer to "find the slant height"
+ * — printing it on every cone handed the student the result of the item they were being
+ * asked to work. Opting in keeps it available where the relationship is the teaching point.
+ */
 function dimensionSummary(spec: SolidNetSpec): string | undefined {
   const d = spec.dimensions;
+  if (!spec.showSlantTriangle) return undefined;
   if (spec.solid !== 'cone' || d.radius === undefined || d.height === undefined) return undefined;
   const slant = d.slant ?? Math.sqrt(d.radius ** 2 + d.height ** 2);
   return `l = √(r² + h²) = √(${num(d.radius)}² + ${num(d.height)}²) = ${num(slant)}`;

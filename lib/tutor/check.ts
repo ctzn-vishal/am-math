@@ -122,7 +122,10 @@ function checkNumber(rawResponse: string, answer: Extract<Answer, { type: 'numbe
   let candidates = assignments.size === 1 ? [...assignments.values()] : numbers.slice(-1);
 
   // "3√11", "2π", "5/2" — an exact form the number pattern cannot read. Try it as algebra.
-  if (candidates.length === 0 || /sqrt|√|\\pi|π|\^/.test(response)) {
+  // A student writes an exact answer as `36pi` as readily as `36π`, so the bare word
+  // counts too. Without it `36 pi` was read as the number 36 and marked wrong. The guard is
+  // adjoining letters, not a word boundary, since `36pi` has no boundary between 6 and p.
+  if (candidates.length === 0 || /sqrt|√|(?<![a-z])pi(?![a-z])|π|\^/.test(response)) {
     try {
       const value = Number(evaluateConstant(response));
       if (Number.isFinite(value)) candidates = [value];

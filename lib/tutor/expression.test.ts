@@ -156,6 +156,12 @@ describe('number answers with exact forms and significant figures', () => {
     expect(checkAnswer('x = sqrt(13)', surd).status).toBe('correct');
     const area: Answer = { type: 'number', value: 36 * Math.PI, tolerance: 1e-6 };
     expect(checkAnswer('36π', area).status).toBe('correct');
+    // Typed in ASCII, which is what a keyboard makes easy.
+    expect(checkAnswer('36 pi', area).status).toBe('correct');
+    expect(checkAnswer('36pi', area).status).toBe('correct');
+    // "pi" inside a word is not the constant.
+    const plain: Answer = { type: 'number', value: 8, tolerance: 0 };
+    expect(checkAnswer('the pipe is 8 m long', plain).status).toBe('correct');
     expect(checkAnswer('$36\\pi$', area).status).toBe('correct');
   });
 
