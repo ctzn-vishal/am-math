@@ -14,6 +14,9 @@ describe('expression parser', () => {
     expect(equivalent('\\frac{x-3}{2x}', '(x-3)/(2*x)', ['x'])).toBe('equivalent');
     expect(equivalent('\\sqrt{x^2}', 'x', ['x'])).toBe('equivalent');
     expect(equivalent('2 \\cdot x \\times 3', '6x', ['x'])).toBe('equivalent');
+    // Nesting either way round: a root inside a fraction, and a fraction inside a root.
+    expect(equivalent('\\frac{\\sqrt{A}}{\\pi}', 'sqrt(A)/pi', ['A'])).toBe('equivalent');
+    expect(equivalent('\\sqrt{\\frac{A}{\\pi}}', 'sqrt(A/pi)', ['A'])).toBe('equivalent');
     expect(normaliseAlgebra('x^{2} − 3')).toBe('x^(2)-3');
   });
 

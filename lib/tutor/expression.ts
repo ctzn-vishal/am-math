@@ -24,17 +24,20 @@ export class ParseError extends Error {}
 /** Turn LaTeX and typographic decoration into plain algebra before tokenising. */
 export function normaliseAlgebra(input: string): string {
   let s = input.trim();
-  // Repeated so nested fractions unwind from the inside out.
-  for (let i = 0; i < 6; i++) {
-    const next = s.replace(/\\(?:d|t)?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '(($1)/($2))');
+  // Both passes run in one loop, innermost-first.
+  //
+  // Their braces nest in either order — a root inside a fraction, a fraction inside a root —
+  // and each pattern only matches a brace group with no braces of its own. Running one to
+  // exhaustion before starting the other therefore left `\frac{\sqrt{A}}{\pi}` unparseable,
+  // because the outer fraction never became brace-free until the root had been rewritten.
+  for (let i = 0; i < 8; i++) {
+    const next = s
+      .replace(/\\sqrt\s*\{([^{}]*)\}/g, 'sqrt($1)')
+      .replace(/\\(?:d|t)?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '(($1)/($2))');
     if (next === s) break;
     s = next;
   }
-  for (let i = 0; i < 6; i++) {
-    const next = s.replace(/\\sqrt\s*\{([^{}]*)\}/g, 'sqrt($1)');
-    if (next === s) break;
-    s = next;
-  }
+
   return s
     .replace(/\\sqrt\s*(\d+|[a-zA-Z])/g, 'sqrt($1)')
     .replace(/\\left|\\right/g, '')
