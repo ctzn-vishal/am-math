@@ -73,17 +73,29 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'Nothing to send.' }, { status: 400 });
   }
 
-  const context = await getSessionContext(sessionId);
-  if (!context) {
-    return NextResponse.json({ error: 'Unknown session.' }, { status: 404 });
+  // Everything before the stream opens is reported as JSON, so a database or configuration
+  // failure reaches the student as its actual message rather than as a bare 500 page.
+  let context: Awaited<ReturnType<typeof getSessionContext>>;
+  let lesson: Awaited<ReturnType<typeof resolveLesson>>;
+  try {
+    context = await getSessionContext(sessionId);
+    if (!context) {
+      return NextResponse.json({ error: 'Unknown session.' }, { status: 404 });
+    }
+
+    lesson = await resolveLesson(context);
+
+    await recordTurn(sessionId, 'student', text, {
+      ...(imageDataUrl ? { imageData: imageDataUrl } : {}),
+      ...(studentSpec ? { visualSpec: studentSpec } : {}),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'The turn could not be started.';
+    console.error('[tutor] turn setup failed:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  const { skill, unitTitle, problem } = await resolveLesson(context);
-
-  await recordTurn(sessionId, 'student', text, {
-    ...(imageDataUrl ? { imageData: imageDataUrl } : {}),
-    ...(studentSpec ? { visualSpec: studentSpec } : {}),
-  });
+  const { skill, unitTitle, problem } = lesson;
 
   const encoder = new TextEncoder();
 

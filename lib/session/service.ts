@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import path from 'node:path';
 import { and, count, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { db } from '@/lib/db';
@@ -33,16 +34,30 @@ import {
 /** Single-student build: one fixed profile rather than an auth system nobody needs yet. */
 export const SOLO_STUDENT_ID = 'solo';
 
-let migrated = false;
+let migration: Promise<void> | null = null;
 
 /**
  * Run migrations on first touch. A local single-user app should work after `npm install`
  * and `npm run dev`, not after remembering a separate database step.
+ *
+ * The in-flight promise is shared so concurrent first requests wait on one migration
+ * rather than racing it, and it is dropped on failure so the next request tries again
+ * instead of inheriting a "done" flag from an attempt that never finished. An earlier
+ * version set the flag before awaiting, which turned a missing migrations folder on the
+ * host into one error per cold start followed by silent success.
  */
 async function ensureSchema(): Promise<void> {
-  if (migrated) return;
-  migrated = true;
-  await migrate(db, { migrationsFolder: './drizzle' });
+  if (!migration) {
+    migration = migrate(db, { migrationsFolder: path.join(process.cwd(), 'drizzle') }).catch(
+      (error: unknown) => {
+        migration = null;
+        throw new Error(
+          `Database migration failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      },
+    );
+  }
+  await migration;
 }
 
 export async function ensureStudent(name = 'Student'): Promise<string> {
