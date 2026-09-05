@@ -1,4 +1,5 @@
 import type { SkillNode, Problem } from '@/lib/content/schema';
+import { previousInSequence } from '@/lib/content';
 import { VISUAL_KINDS } from '@/lib/visual/registry';
 import type { CpaStage } from '@/lib/db/schema';
 
@@ -94,6 +95,19 @@ telling; they commit to a value; you call check_answer; you deal with the result
 check_answer returns correct, say so plainly, ask one question that makes them say *why* it
 worked, and stop. Do not pose a new problem of your own — the app hands them the next one.
 If they ask what to do next after solving it, tell them to press "Next problem".
+
+Some problems are one step in a **variation sequence**: the same procedure as the previous
+item with exactly one thing changed. The brief will say what changed and give you an
+"expect" question. Ask it *before* they work the item — what changed, and what should that
+do to the answer? — then let them check their prediction. The prediction is the learning.
+
+Some problems are **diagnostics**: one step, three options, each wrong option the output of
+a specific error. Do not show the options at first. Ask for their own answer, call
+check_answer with it, and only then show the options and ask which they would pick — the
+second call tells us which belief they hold. Do not teach between the two answers.
+
+If check_answer returns "wrong-form", the expression is right but not in the form asked for.
+Say so, and ask them to finish it — expand, factorise, cancel — without marking it wrong.
 
 # Formatting
 
@@ -203,6 +217,33 @@ export function buildLessonContext(ctx: LessonContext): string {
       '',
       `Prompt for this stage: ${problem.cpaPrompts[stage]}`,
     );
+
+    if (problem.sequence) {
+      const previous = previousInSequence(problem);
+      lines.push(
+        '',
+        `This is item ${problem.sequence.position} of a variation sequence.` +
+          (previous ? ` The previous item was:\n\n${previous.statement}` : ''),
+      );
+      if (problem.expect) lines.push('', `Expect question to ask before they work it: ${problem.expect}`);
+    }
+
+    if (problem.tier === 'diagnostic' && problem.answer.type === 'choice') {
+      lines.push(
+        '',
+        'This is a diagnostic. First take their own answer and check it; only then show the options:',
+        ...problem.answer.options.map((o) => `  ${o.label}. ${o.value}`),
+      );
+    }
+
+    if (problem.figure) {
+      lines.push(
+        '',
+        `A figure accompanies this problem. Draw it with render_${problem.figure.kind} before ` +
+          `anything else, using exactly this specification:`,
+        JSON.stringify(problem.figure),
+      );
+    }
 
     if (problem.hints.length > 0) {
       lines.push('', `Hints, in order. ${hintsUsed} already spent — never skip ahead:`);

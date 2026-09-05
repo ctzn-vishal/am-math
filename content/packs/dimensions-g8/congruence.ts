@@ -144,7 +144,7 @@ export const congruenceProblems: Problem[] = [
   {
     id: 'congruence.sas-test',
     skillIds: ['congruence.identify-establish-congruence'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'In $\\triangle ABC$ and $\\triangle PQR$, $AB = PQ = 6$ cm, $\\angle B = \\angle Q = 45°$ ' +
       'and $BC = QR = 8$ cm. Are the triangles congruent? If so, name the test that shows it.',
@@ -180,7 +180,7 @@ export const congruenceProblems: Problem[] = [
   {
     id: 'congruence.reflect-in-y-equals-x',
     skillIds: ['congruence.reflection-transformations-across'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'A triangle has vertices $A(1, 4)$, $B(4, 5)$ and $C(3, 1)$. It is reflected across the ' +
       'line $y = x$. Find the coordinates of the image $A\'$ of $A$.',
@@ -212,7 +212,7 @@ export const congruenceProblems: Problem[] = [
       'congruence.understand-similarity-coordinate',
       'congruence.reflection-transformations-across',
     ],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'The triangle with vertices $A(1, 4)$, $B(4, 5)$, $C(3, 1)$ is reflected across $y = x$ ' +
       'to give $\\triangle A\'B\'C\'$. Find the length of $A\'C\'$, correct to 2 decimal places.',

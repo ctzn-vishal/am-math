@@ -62,8 +62,41 @@ export function getProblem(problemId: string, packId?: string): Problem | undefi
   return getPack(packId).problems.find((p) => p.id === problemId);
 }
 
+const TIER_ORDER: Record<string, number> = { 1: 0, 2: 1, 3: 2, 4: 3, diagnostic: 4 };
+
+/**
+ * A skill's problems in teaching order: fluency sequences first (in sequence position,
+ * because in a variation sequence the order *is* the content), then application, applied,
+ * challenge, and diagnostics last. Within a tier, bank order is kept. Everything downstream
+ * — the lesson's "Next problem", the dashboard count — inherits this order.
+ */
 export function problemsForSkill(skillId: string, packId?: string): Problem[] {
-  return getPack(packId).problems.filter((p) => p.skillIds.includes(skillId));
+  const all = getPack(packId).problems;
+  const mine = all.map((p, i) => ({ p, i })).filter(({ p }) => p.skillIds.includes(skillId));
+  const familyStart = new Map<string, number>();
+  for (const { p, i } of mine) {
+    if (p.sequence && !familyStart.has(p.sequence.family)) familyStart.set(p.sequence.family, i);
+  }
+  return mine
+    .sort((a, b) => {
+      const tier = (TIER_ORDER[a.p.tier] ?? 9) - (TIER_ORDER[b.p.tier] ?? 9);
+      if (tier !== 0) return tier;
+      // Sequence members sort by where their family first appears, then by position.
+      const aKey = a.p.sequence ? (familyStart.get(a.p.sequence.family) ?? a.i) : a.i;
+      const bKey = b.p.sequence ? (familyStart.get(b.p.sequence.family) ?? b.i) : b.i;
+      if (aKey !== bKey) return aKey - bKey;
+      return (a.p.sequence?.position ?? 0) - (b.p.sequence?.position ?? 0);
+    })
+    .map(({ p }) => p);
+}
+
+/** The item before this one in its variation sequence, for the Reflect–Expect prompt. */
+export function previousInSequence(problem: Problem, packId?: string): Problem | undefined {
+  if (!problem.sequence) return undefined;
+  const { family, position } = problem.sequence;
+  return getPack(packId).problems.find(
+    (p) => p.sequence?.family === family && p.sequence.position === position - 1,
+  );
 }
 
 export function unitsInOrder(packId?: string): Unit[] {

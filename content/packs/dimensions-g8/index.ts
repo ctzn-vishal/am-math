@@ -57,6 +57,28 @@ export const AUTHORED_UNITS = new Set([
   'quadratic-methods',
 ]);
 
+/**
+ * Units whose problem bank has been built to docs/PROBLEM-SET-GUIDE.md: a tier-1 variation
+ * sequence per skill, application and applied items, one diagnostic per misconception code.
+ * `content.test.ts` holds every member to that standard.
+ */
+export const BANKED_UNITS = new Set([
+  'exponents',
+  'linear-systems',
+  'expansion',
+  'quadratic-factorisation',
+  'algebraic-fractions',
+  'congruence',
+  'parallel-angles',
+  'function-graphs',
+  'practical-graphs',
+  'pythagoras',
+  'coordinate-geometry',
+  'mensuration',
+  'data-analysis',
+  'quadratic-methods',
+]);
+
 const authoredSkills = [
   ...exponentsSkills,
   ...linearSystemsSkills,

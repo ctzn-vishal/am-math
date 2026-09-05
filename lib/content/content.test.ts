@@ -10,8 +10,9 @@ import {
   checkPackIntegrity,
   curriculumPackSchema,
 } from './index';
-import { AUTHORED_UNITS } from '@/content/packs/dimensions-g8';
+import { AUTHORED_UNITS, BANKED_UNITS } from '@/content/packs/dimensions-g8';
 import { parseVisualSpec } from '@/lib/visual/registry';
+import { validateSpec } from '@/lib/visual/validate';
 
 describe('dimensions-g8 pack', () => {
   const pack = getPack();
@@ -120,6 +121,117 @@ describe('authored units', () => {
   it('gives every skill at least one problem it can be marked on', () => {
     for (const skill of getPack().skills) {
       expect(problemsForSkill(skill.id).length, `${skill.id} has no problems`).toBeGreaterThan(0);
+    }
+  });
+});
+
+/**
+ * The problem-set architecture from docs/PROBLEM-SET-GUIDE.md §2 and §3, enforced. A skill
+ * is not "covered" by one problem: it needs a fluency sequence (order is content), items
+ * that hide the skill in an unfamiliar surface, items that must be formulated from a
+ * context, and one diagnostic per misconception whose distractors are the misconception's
+ * own output.
+ */
+describe('problem bank', () => {
+  const pack = getPack();
+  const codeToSkill = new Map(pack.skills.flatMap((s) => s.misconceptions.map((m) => [m.code, s.id])));
+
+  for (const unitId of BANKED_UNITS) {
+    describe(unitId, () => {
+      const skills = skillsOfUnit(unitId);
+      const skillIds = new Set(skills.map((s) => s.id));
+      const problems = pack.problems.filter((p) => p.skillIds.some((id) => skillIds.has(id)));
+
+      for (const skill of skills) {
+        describe(skill.id, () => {
+          const mine = problemsForSkill(skill.id);
+          const byTier = (tier: number | 'diagnostic') => mine.filter((p) => p.tier === tier);
+
+          it('opens with a variation sequence of at least five items', () => {
+            const tier1 = byTier(1).filter((p) => p.skillIds[0] === skill.id);
+            expect(tier1.length, `${skill.id} has ${tier1.length} tier-1 items`).toBeGreaterThanOrEqual(5);
+            const families = new Map<string, number>();
+            for (const p of tier1) {
+              expect(p.sequence, `${p.id} is tier 1 but not in a sequence`).toBeDefined();
+              if (p.sequence) families.set(p.sequence.family, (families.get(p.sequence.family) ?? 0) + 1);
+            }
+            const longest = Math.max(...families.values());
+            expect(longest, `${skill.id}: longest sequence has ${longest} items`).toBeGreaterThanOrEqual(5);
+          });
+
+          it('carries an expect prompt on every sequence item after the first', () => {
+            for (const p of mine) {
+              if (p.sequence && p.sequence.position > 1 && p.tier === 1) {
+                expect(p.expect, `${p.id} has no expect prompt`).toBeDefined();
+                expect(p.expect?.length ?? 0, p.id).toBeGreaterThan(20);
+              }
+            }
+          });
+
+          it('has application and applied items', () => {
+            expect(byTier(2).length, `${skill.id} has no tier-2 items`).toBeGreaterThanOrEqual(2);
+            expect(byTier(3).length, `${skill.id} has no tier-3 items`).toBeGreaterThanOrEqual(1);
+          });
+
+          it('has exactly one diagnostic per misconception code', () => {
+            for (const m of skill.misconceptions) {
+              const diagnostics = pack.problems.filter(
+                (p) => p.tier === 'diagnostic' && p.misconceptionCodes[0] === m.code,
+              );
+              expect(diagnostics.length, `${m.code} has ${diagnostics.length} diagnostics`).toBe(1);
+              const d = diagnostics[0]!;
+              const answer = d.answer;
+              expect(answer.type).toBe('choice');
+              if (answer.type !== 'choice') return;
+              const detecting = answer.options.filter((o) => o.misconceptionCode === m.code);
+              expect(detecting.length, `${d.id}: one option must be the output of ${m.code}`).toBe(1);
+              const correct = answer.options.find((o) => o.label === answer.correct);
+              expect(correct?.misconceptionCode, `${d.id}: the correct option carries a code`).toBeUndefined();
+              // Every distractor names the error it reveals (Barton rule 1).
+              for (const o of answer.options) {
+                if (o.label === answer.correct) continue;
+                expect(o.misconceptionCode, `${d.id}: option ${o.label} reveals no named error`).toBeDefined();
+                expect(codeToSkill.has(o.misconceptionCode ?? ''), `${d.id}: unknown code`).toBe(true);
+              }
+            }
+          });
+        });
+      }
+
+      it('has at least one challenge item', () => {
+        expect(problems.filter((p) => p.tier === 4).length, `${unitId} has no tier-4 item`).toBeGreaterThan(0);
+      });
+
+      it('meets the per-problem authoring standard', () => {
+        for (const problem of problems) {
+          expect(problem.hints.length, problem.id).toBeGreaterThanOrEqual(2);
+          expect(problem.solution.length, problem.id).toBeGreaterThan(40);
+          expect(problem.misconceptionCodes.length, problem.id).toBeGreaterThan(0);
+          for (const stage of ['concrete', 'pictorial', 'abstract'] as const) {
+            expect(problem.cpaPrompts[stage].length, `${problem.id}.${stage}`).toBeGreaterThan(30);
+          }
+          if (problem.figure) {
+            const issues = validateSpec(problem.figure).issues.filter((i) => i.severity === 'error');
+            expect(issues, `${problem.id} figure: ${issues.map((i) => i.message).join('; ')}`).toEqual([]);
+          }
+        }
+      });
+
+      it('keeps problem ids unique to the unit', () => {
+        for (const problem of problems) {
+          expect(problem.id.startsWith(`${unitId}.`), `${problem.id} should start with "${unitId}."`).toBe(true);
+        }
+      });
+    });
+  }
+
+  it('orders a skill by tier, then sequence position, with diagnostics last', () => {
+    for (const skill of pack.skills) {
+      const order = problemsForSkill(skill.id).map((p) =>
+        p.tier === 'diagnostic' ? 5 : p.tier,
+      );
+      const sorted = [...order].sort((a, b) => a - b);
+      expect(order, skill.id).toEqual(sorted);
     }
   });
 });

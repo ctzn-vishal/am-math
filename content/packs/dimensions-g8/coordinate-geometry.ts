@@ -175,7 +175,7 @@ export const coordinateGeometryProblems: Problem[] = [
   {
     id: 'coordinate-geometry.midpoint-pq',
     skillIds: ['coordinate-geometry.calculate-length-midpoint'],
-    difficulty: 'basic',
+    tier: 1,
     statement: 'Find the midpoint of the segment joining $P(-2, 5)$ and $Q(4, -3)$.',
     answer: { type: 'coordinates', x: 1, y: 1, tolerance: 0 },
     cpaPrompts: {
@@ -201,7 +201,7 @@ export const coordinateGeometryProblems: Problem[] = [
   {
     id: 'coordinate-geometry.length-pq',
     skillIds: ['coordinate-geometry.calculate-length-midpoint'],
-    difficulty: 'basic',
+    tier: 1,
     statement: 'Find the exact length of the segment joining $P(-2, 5)$ and $Q(4, -3)$.',
     answer: { type: 'number', value: 10, tolerance: 0 },
     cpaPrompts: {
@@ -227,7 +227,7 @@ export const coordinateGeometryProblems: Problem[] = [
   {
     id: 'coordinate-geometry.perpendicular-bisector-gradient',
     skillIds: ['coordinate-geometry.parallel-perpendicular-line', 'coordinate-geometry.find-gradient-line'],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'Find the gradient of the perpendicular bisector of the segment joining $A(2, -1)$ and ' +
       '$B(6, 7)$.',
@@ -255,7 +255,7 @@ export const coordinateGeometryProblems: Problem[] = [
   {
     id: 'coordinate-geometry.perpendicular-bisector-intercept',
     skillIds: ['coordinate-geometry.find-equations-perpendicular'],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'Find the equation of the perpendicular bisector of the segment joining $A(2, -1)$ and ' +
       '$B(6, 7)$, in the form $y = mx + c$. State the value of $c$, the $y$-intercept.',

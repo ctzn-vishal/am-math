@@ -178,7 +178,7 @@ export const dataAnalysisProblems: Problem[] = [
   {
     id: 'data-analysis.median-nine-values',
     skillIds: ['data-analysis.calculate-interpret-measures'],
-    difficulty: 'basic',
+    tier: 1,
     statement: 'Find the median of the dataset $3, 7, 8, 5, 12, 14, 21, 13, 18$.',
     answer: { type: 'number', value: 12, tolerance: 0 },
     cpaPrompts: {
@@ -204,7 +204,7 @@ export const dataAnalysisProblems: Problem[] = [
   {
     id: 'data-analysis.iqr-nine-values',
     skillIds: ['data-analysis.construct-interpret-five-number', 'data-analysis.calculate-interpret-measures'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'Find the interquartile range of the dataset $3, 7, 8, 5, 12, 14, 21, 13, 18$.',
     answer: { type: 'number', value: 10, tolerance: 0 },
@@ -235,7 +235,7 @@ export const dataAnalysisProblems: Problem[] = [
   {
     id: 'data-analysis.grouped-mean-scores',
     skillIds: ['data-analysis.calculate-estimated-mean'],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'The test scores of 40 students were grouped as follows:\n\n' +
       '- $50 \\le x < 60$: 6 students\n- $60 \\le x < 70$: 14 students\n' +
@@ -268,7 +268,7 @@ export const dataAnalysisProblems: Problem[] = [
   {
     id: 'data-analysis.correlation-direction',
     skillIds: ['data-analysis.identify-scatter-plot'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       "A class plots each student's hours of sleep the night before a test against their test " +
       'score. The points drift downward from left to right. What kind of correlation does the ' +

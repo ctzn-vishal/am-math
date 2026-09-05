@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { VisualKind } from '@/lib/visual/spec';
+import { visualSpecSchema, type VisualKind } from '@/lib/visual/spec';
 
 /**
  * The content layer is keyed on **skill nodes**, not on chapters.
@@ -64,12 +64,26 @@ export type SkillNode = z.infer<typeof skillNodeSchema>;
  * Answers are checked in code, not by the model. An LLM marking its own student's
  * arithmetic is a needless source of both false praise and false failure.
  */
+export const expressionFormSchema = z
+  .enum(['simplified', 'expanded', 'factorised', 'single-fraction'])
+  .describe(
+    'A structural requirement on top of equivalence. "expanded": no brackets. "factorised": a ' +
+      'product of brackets with nothing left to add at the top level. "single-fraction": exactly ' +
+      'one top-level division. "simplified": no longer than the reference, so a fraction with an ' +
+      'uncancelled factor is caught.',
+  );
+
 export const answerSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('number'),
     value: z.number(),
     tolerance: z.number().min(0).default(0),
     unit: z.string().max(20).optional(),
+    /**
+     * Mark against the reference rounded to this many significant figures. The unrounded
+     * value is also accepted, and the tutor is told "right but not rounded".
+     */
+    sigfigs: z.number().int().min(1).max(6).optional(),
   }),
   z.object({
     type: z.literal('coordinates'),
@@ -88,16 +102,87 @@ export const answerSchema = z.discriminatedUnion('type', [
     /** Alternative spellings that are equally correct, e.g. "1/16" and "0.0625". */
     accepts: z.array(z.string().max(200)).max(8).default([]),
   }),
+  /**
+   * An algebraic expression, marked by equivalence: both sides are evaluated at several
+   * random points and must agree everywhere. Any correct form passes the equivalence test;
+   * `form` then adds a structural requirement so "right but not simplified" is its own outcome.
+   */
+  z.object({
+    type: z.literal('expression'),
+    value: z
+      .string()
+      .max(200)
+      .describe('Plain algebra: `(x-3)/(2*x)`, `x^2+5x+6`, `sqrt(13)`. Implicit multiplication is fine.'),
+    variables: z.array(z.string().regex(/^[a-zA-Z]$/)).min(1).max(4).default(['x']),
+    form: expressionFormSchema.optional(),
+  }),
+  /**
+   * An equation in the listed variables — a line, a curve, a rearranged formula. Marked by
+   * comparing `lhs - rhs` up to a constant multiple, so `y = -x/2 + 5`, `2y = 10 - x` and
+   * `x + 2y - 10 = 0` all pass. A bare expression is read as the right-hand side when `lhs`
+   * is a single variable.
+   */
+  z.object({
+    type: z.literal('equation'),
+    lhs: z.string().max(100),
+    rhs: z.string().max(200),
+    variables: z.array(z.string().regex(/^[a-zA-Z]$/)).min(1).max(4).default(['x', 'y']),
+  }),
+  /**
+   * A diagnostic item. Options carry their own misconception code so a wrong choice records
+   * *which* wrong belief produced it. The student answers by letter or by restating the
+   * option; either is mapped.
+   */
+  z.object({
+    type: z.literal('choice'),
+    correct: z.enum(['A', 'B', 'C', 'D']),
+    options: z
+      .array(
+        z.object({
+          label: z.enum(['A', 'B', 'C', 'D']),
+          value: z.string().min(1).max(200).describe('The option as shown, LaTeX allowed.'),
+          misconceptionCode: slug.optional().describe('The code whose output this distractor is.'),
+        }),
+      )
+      .min(3)
+      .max(4),
+  }),
 ]);
 
 export type Answer = z.infer<typeof answerSchema>;
 
 // ---------------------------------------------------------------------------
 
+export const tierSchema = z
+  .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal('diagnostic')])
+  .describe(
+    '1 fluency (a variation sequence), 2 application (same skill, unfamiliar surface), 3 applied ' +
+      '(must be formulated from a context), 4 challenge (reasoning, multi-skill, SSDD), or a ' +
+      'diagnostic that detects one misconception.',
+  );
+
+export type Tier = z.infer<typeof tierSchema>;
+
 export const problemSchema = z.object({
   id: slug,
   skillIds: z.array(slug).min(1).max(6),
-  difficulty: z.enum(['basic', 'advanced', 'challenge']),
+  tier: tierSchema,
+  /**
+   * Membership of an ordered family: a tier-1 variation sequence (one thing changes per
+   * item, so order is content) or an SSDD set (same surface, different deep structure).
+   * The lesson follows `position` rather than bank order when this is set.
+   */
+  sequence: z
+    .object({
+      family: slug,
+      position: z.number().int().min(1).max(20),
+    })
+    .optional(),
+  /**
+   * The Reflect–Expect prompt for a sequence item: what changed from the last item, and what
+   * should that do to the answer? The tutor asks this *before* the student works the item.
+   */
+  expect: richText.optional(),
   statement: richText,
   answer: answerSchema,
   cpaPrompts: z.object({
@@ -108,8 +193,10 @@ export const problemSchema = z.object({
   /** Progressive. Each reveals strictly more than the last; the tutor spends them one at a time. */
   hints: z.array(richText).max(6).default([]),
   solution: richText,
-  /** Misconception codes this problem is known to provoke. */
+  /** Misconception codes this problem is known to provoke. A diagnostic lists the one it detects first. */
   misconceptionCodes: z.array(slug).max(6).default([]),
+  /** A figure to show alongside the statement, validated like any tutor-drawn figure. */
+  figure: visualSpecSchema.optional(),
 });
 
 export type Problem = z.infer<typeof problemSchema>;
@@ -210,6 +297,51 @@ export function checkPackIntegrity(pack: CurriculumPack): PackIssue[] {
           message: `Unknown misconception "${code}".`,
         });
       }
+    }
+  }
+
+  const families = new Map<string, number[]>();
+  for (const problem of pack.problems) {
+    if (problem.tier === 'diagnostic') {
+      if (problem.answer.type !== 'choice') {
+        issues.push({ path: `problems.${problem.id}`, message: 'A diagnostic must have a choice answer.' });
+      } else {
+        for (const option of problem.answer.options) {
+          if (option.misconceptionCode && !misconceptionCodes.has(option.misconceptionCode)) {
+            issues.push({
+              path: `problems.${problem.id}.answer.options`,
+              message: `Unknown misconception "${option.misconceptionCode}".`,
+            });
+          }
+        }
+        const labels = problem.answer.options.map((o) => o.label);
+        if (new Set(labels).size !== labels.length) {
+          issues.push({ path: `problems.${problem.id}.answer.options`, message: 'Duplicate option label.' });
+        }
+        if (!labels.includes(problem.answer.correct)) {
+          issues.push({
+            path: `problems.${problem.id}.answer`,
+            message: `Correct option "${problem.answer.correct}" is not among the options.`,
+          });
+        }
+      }
+    } else if (problem.answer.type === 'choice') {
+      issues.push({ path: `problems.${problem.id}`, message: 'Only a diagnostic may have a choice answer.' });
+    }
+    if (problem.sequence) {
+      const list = families.get(problem.sequence.family) ?? [];
+      list.push(problem.sequence.position);
+      families.set(problem.sequence.family, list);
+    }
+  }
+  for (const [family, positions] of families) {
+    const sorted = [...positions].sort((a, b) => a - b);
+    const consecutive = sorted.every((p, i) => p === i + 1);
+    if (!consecutive) {
+      issues.push({
+        path: `sequences.${family}`,
+        message: `Positions must run 1..n without gaps or repeats; got ${sorted.join(', ')}.`,
+      });
     }
   }
 

@@ -183,7 +183,7 @@ export const algebraicFractionsProblems: Problem[] = [
   {
     id: 'algebraic-fractions.simplify-difference-of-squares',
     skillIds: ['algebraic-fractions.simplify-algebraic-fractions'],
-    difficulty: 'basic',
+    tier: 1,
     statement: 'Simplify $\\dfrac{x^2 - 9}{2x^2 + 6x}$.',
     answer: { type: 'exact', value: '(x-3)/(2x)', accepts: ['(x-3)/2x', 'x-3/2x'] },
     cpaPrompts: {
@@ -214,7 +214,7 @@ export const algebraicFractionsProblems: Problem[] = [
   {
     id: 'algebraic-fractions.excluded-values',
     skillIds: ['algebraic-fractions.identify-restrictions-extraneous'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'For which values of $x$ is $\\dfrac{x^2 - 9}{2x^2 + 6x}$ undefined? Give every value.',
     answer: { type: 'set', values: [0, -3], tolerance: 0 },
@@ -247,7 +247,7 @@ export const algebraicFractionsProblems: Problem[] = [
       'algebraic-fractions.solve-fractional-equations',
       'algebraic-fractions.identify-restrictions-extraneous',
     ],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'Solve the equation\n$$\\frac{3}{x - 2} - \\frac{2}{x + 1} = \\frac{5}{x^2 - x - 2}.$$',
     answer: { type: 'number', value: -2, tolerance: 0 },
@@ -282,7 +282,7 @@ export const algebraicFractionsProblems: Problem[] = [
   {
     id: 'algebraic-fractions.add-with-lcd',
     skillIds: ['algebraic-fractions.four-operations-rational'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'Write $\\dfrac{3}{x - 2} + \\dfrac{2}{x + 1}$ as a single fraction. Then state the ' +
       'numerator of your answer.',

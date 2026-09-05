@@ -176,7 +176,7 @@ export function Lesson({
                 break;
 
               case 'answer_checked':
-                if (event.result.status !== 'unparseable') {
+                if (event.result.status === 'correct' || event.result.status === 'incorrect') {
                   const verdict = event.result.status;
                   setMessages((prev) =>
                     prev.map((m) => (m.id === tutorId ? { ...m, verdict } : m)),

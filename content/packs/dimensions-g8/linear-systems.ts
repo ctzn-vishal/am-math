@@ -153,7 +153,7 @@ export const linearSystemsProblems: Problem[] = [
   {
     id: 'linear-systems.substitution-basic',
     skillIds: ['linear-systems.solve-simultaneous-linear'],
-    difficulty: 'basic',
+    tier: 1,
     statement: 'Solve the simultaneous equations:\n$$y = 2x + 1$$\n$$3x + 2y = 16$$',
     answer: { type: 'coordinates', x: 2, y: 5, tolerance: 0 },
     cpaPrompts: {
@@ -186,7 +186,7 @@ export const linearSystemsProblems: Problem[] = [
       'linear-systems.formulate-solve-applied',
       'linear-systems.solve-simultaneous-linear',
     ],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       '3 adult tickets and 4 child tickets cost $\\$48$. 5 adult tickets and 2 child tickets cost ' +
       '$\\$52$. Find the cost of one adult ticket and one child ticket.',
@@ -225,7 +225,7 @@ export const linearSystemsProblems: Problem[] = [
   {
     id: 'linear-systems.write-the-equations',
     skillIds: ['linear-systems.model-real-world-relationships'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'A bakery sells loaves for $\\$l$ each and rolls for $\\$r$ each. One customer buys 2 ' +
       'loaves and 6 rolls for $\\$13$; another buys 1 loaf and 3 rolls. Write an equation for ' +

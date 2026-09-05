@@ -175,7 +175,7 @@ export const quadraticMethodsProblems: Problem[] = [
   {
     id: 'quadratic-methods.complete-the-square',
     skillIds: ['quadratic-methods.solve-quadratic-equations'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'Solve $x^2 - 6x - 2 = 0$ by completing the square. Give both answers correct to 2 ' +
       'decimal places.',
@@ -207,7 +207,7 @@ export const quadraticMethodsProblems: Problem[] = [
   {
     id: 'quadratic-methods.discriminant-count',
     skillIds: ['quadratic-methods.determine-number-real'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'Without solving it, find how many distinct real roots the equation $x^2 + 6x + 9 = 0$ ' +
       'has.',
@@ -236,7 +236,7 @@ export const quadraticMethodsProblems: Problem[] = [
   {
     id: 'quadratic-methods.fractional-to-quadratic',
     skillIds: ['quadratic-methods.solve-fractional-geometric', 'quadratic-methods.derive-quadratic-formula'],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'Solve $\\dfrac{2}{x + 1} + \\dfrac{3}{x} = 2$. Give both answers correct to 2 decimal ' +
       'places.',

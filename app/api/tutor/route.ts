@@ -155,7 +155,8 @@ export async function POST(request: Request): Promise<Response> {
             case 'answer_checked':
               // Only a definite verdict is evidence. "Unparseable" is our failure to read
               // them and must not touch the mastery estimate.
-              if (event.result.status !== 'unparseable') {
+              // "Wrong form" is right but unfinished, and is not evidence either way.
+              if (event.result.status === 'correct' || event.result.status === 'incorrect') {
                 await recordAttempt({
                   studentId: context.studentId,
                   sessionId,
@@ -164,6 +165,10 @@ export async function POST(request: Request): Promise<Response> {
                   correct: event.result.status === 'correct',
                   hintsUsed,
                   cpaStage: stage,
+                  // A diagnostic distractor names the misconception that produced it.
+                  ...(event.result.status === 'incorrect' && event.result.misconceptionCode
+                    ? { misconceptionCode: event.result.misconceptionCode }
+                    : {}),
                 });
                 // A system turn so the verdict survives a reload of the transcript.
                 await recordTurn(sessionId, 'system', `check:${event.result.status}:${event.problemId}`);

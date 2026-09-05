@@ -226,7 +226,7 @@ export const exponentsProblems: Problem[] = [
   {
     id: 'exponents.simplify-index-expression',
     skillIds: ['exponents.index-laws-positive'],
-    difficulty: 'basic',
+    tier: 1,
     statement: 'Simplify $\\dfrac{2^5 \\cdot 2^{-2}}{2^7}$, giving your answer in positive index form.',
     answer: { type: 'exact', value: '1/16', accepts: ['0.0625', '1/2^4', '2^-4'] },
     cpaPrompts: {
@@ -259,7 +259,7 @@ export const exponentsProblems: Problem[] = [
       'exponents.operations-scientific-notation',
       'exponents.numbers-standard-scientific',
     ],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'Evaluate $(4.8 \\times 10^5) + (7.6 \\times 10^4)$, giving your answer in standard form.',
     answer: { type: 'exact', value: '5.56 x 10^5', accepts: ['556000', '5.56e5', '5.56*10^5'] },
@@ -291,7 +291,7 @@ export const exponentsProblems: Problem[] = [
   {
     id: 'exponents.magnitude-ratio',
     skillIds: ['exponents.compare-orders-magnitude'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'The mass of the Earth is about $6 \\times 10^{24}$ kg and the mass of the Moon is about ' +
       '$7.3 \\times 10^{22}$ kg. Roughly how many times more massive is the Earth than the Moon? ' +

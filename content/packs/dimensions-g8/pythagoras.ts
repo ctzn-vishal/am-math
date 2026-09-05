@@ -175,7 +175,7 @@ export const pythagorasProblems: Problem[] = [
   {
     id: 'pythagoras.missing-leg',
     skillIds: ['pythagoras.calculate-unknown-side', 'pythagoras.state-prove-pythagorean'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'A right-angled triangle has a hypotenuse of length 13 cm and one leg of length 5 cm. ' +
       'Find the length of the other leg.',
@@ -205,7 +205,7 @@ export const pythagorasProblems: Problem[] = [
   {
     id: 'pythagoras.converse-7-24-25',
     skillIds: ['pythagoras.converse-pythagorean-theorem'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'A triangle has sides of length 7 cm, 24 cm and 25 cm. Is it right-angled? Answer yes ' +
       'or no, and be ready to say why.',
@@ -234,7 +234,7 @@ export const pythagorasProblems: Problem[] = [
   {
     id: 'pythagoras.space-diagonal',
     skillIds: ['pythagoras.solve-applied-spatial', 'pythagoras.calculate-unknown-side'],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'A rectangular box has length 8 cm, width 6 cm and height 24 cm. Find the length of the ' +
       'internal diagonal joining two opposite corners.',

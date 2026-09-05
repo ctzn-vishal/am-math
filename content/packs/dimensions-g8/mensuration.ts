@@ -146,7 +146,7 @@ export const mensurationProblems: Problem[] = [
   {
     id: 'mensuration.cone-volume',
     skillIds: ['mensuration.calculate-surface-areas'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'A right cone has base radius 5 cm and vertical height 12 cm. Find its volume, leaving ' +
       'your answer as a multiple of $\\pi$ — so give the number that multiplies $\\pi$.',
@@ -173,7 +173,7 @@ export const mensurationProblems: Problem[] = [
   {
     id: 'mensuration.cone-total-surface-area',
     skillIds: ['mensuration.distinguish-vertical-height', 'mensuration.calculate-surface-areas'],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'A right cone has base radius 5 cm and vertical height 12 cm. Find its total surface ' +
       'area, leaving your answer as a multiple of $\\pi$ — give the number that multiplies $\\pi$.',
@@ -203,7 +203,7 @@ export const mensurationProblems: Problem[] = [
   {
     id: 'mensuration.silo-volume',
     skillIds: ['mensuration.solve-problems-involving'],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'A storage silo is a cylinder of radius 3 m and height 8 m, topped by a solid hemisphere ' +
       'of radius 3 m. Find the total volume of the silo in m³, correct to 3 significant figures.',
@@ -233,7 +233,7 @@ export const mensurationProblems: Problem[] = [
   {
     id: 'mensuration.silo-surface-area',
     skillIds: ['mensuration.solve-problems-involving'],
-    difficulty: 'challenge',
+    tier: 4,
     statement:
       'A storage silo is a cylinder of radius 3 m and height 8 m, topped by a solid hemisphere ' +
       'of radius 3 m. Find the total exterior surface area, including the flat circular base, ' +

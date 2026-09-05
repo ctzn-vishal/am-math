@@ -169,7 +169,7 @@ export const quadraticFactorisationProblems: Problem[] = [
   {
     id: 'quadratic.solve-monic',
     skillIds: ['quadratic-factorisation.solve-quadratic-equations'],
-    difficulty: 'basic',
+    tier: 1,
     statement: 'Solve the equation $x^2 - 7x + 12 = 0$.',
     answer: { type: 'set', values: [3, 4], tolerance: 0 },
     cpaPrompts: {
@@ -201,7 +201,7 @@ export const quadraticFactorisationProblems: Problem[] = [
   {
     id: 'quadratic.factorise-non-monic',
     skillIds: ['quadratic-factorisation.factorize-quadratic-trinomials'],
-    difficulty: 'advanced',
+    tier: 2,
     statement: 'Factorize $3x^2 + 10x + 8$.',
     answer: {
       type: 'exact',
@@ -237,7 +237,7 @@ export const quadraticFactorisationProblems: Problem[] = [
       'quadratic-factorisation.model-real-world-scenarios',
       'quadratic-factorisation.solve-quadratic-equations',
     ],
-    difficulty: 'challenge',
+    tier: 4,
     statement:
       'The length of a rectangular garden is $3\\text{ m}$ longer than twice its width. The area ' +
       'is $35\\text{ m}^2$. Find the dimensions of the garden.',

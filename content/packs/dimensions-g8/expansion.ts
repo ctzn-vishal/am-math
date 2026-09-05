@@ -170,7 +170,7 @@ export const expansionProblems: Problem[] = [
   {
     id: 'expansion.difference-of-squares',
     skillIds: ['expansion.special-algebraic-identities'],
-    difficulty: 'basic',
+    tier: 1,
     statement: 'Expand and simplify $(3x + 4)(3x - 4)$.',
     answer: { type: 'exact', value: '9x^2 - 16', accepts: ['9x²-16', '-16 + 9x^2'] },
     cpaPrompts: {
@@ -198,7 +198,7 @@ export const expansionProblems: Problem[] = [
   {
     id: 'expansion.perfect-square-middle-term',
     skillIds: ['expansion.special-algebraic-identities'],
-    difficulty: 'basic',
+    tier: 1,
     statement: 'Expand $(2x + 5)^2$.',
     answer: { type: 'exact', value: '4x^2 + 20x + 25', accepts: ['4x²+20x+25'] },
     cpaPrompts: {
@@ -228,7 +228,7 @@ export const expansionProblems: Problem[] = [
   {
     id: 'expansion.factorise-by-grouping',
     skillIds: ['expansion.factorize-expressions-grouping'],
-    difficulty: 'challenge',
+    tier: 4,
     statement: 'Factorize completely: $x^2 - y^2 + 6x + 9$.',
     answer: {
       type: 'exact',
@@ -266,7 +266,7 @@ export const expansionProblems: Problem[] = [
   {
     id: 'expansion.expand-binomial-product',
     skillIds: ['expansion.expand-products-algebraic'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'Expand and simplify $(2x + 3)(x - 4)$. Then state the coefficient of $x$ in your answer.',
     answer: { type: 'number', value: -5, tolerance: 0 },

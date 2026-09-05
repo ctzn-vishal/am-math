@@ -176,16 +176,35 @@ export function executeTool(
     return {
       payload:
         result.status === 'correct'
-          ? { status: 'correct' }
+          ? { status: 'correct', ...(result.note ? { note: result.note } : {}) }
           : result.status === 'incorrect'
-            ? { status: 'incorrect', student_gave: result.got }
-            : {
-                status: 'unparseable',
-                reason: result.reason,
-                note:
-                  'This is not a wrong answer. Ask the student to state their value plainly, ' +
-                  'and do not record or imply that they were incorrect.',
-              },
+            ? {
+                status: 'incorrect',
+                student_gave: result.got,
+                ...(result.misconceptionCode
+                  ? {
+                      misconception_detected: result.misconceptionCode,
+                      note: 'This option is the output of a known misconception; it has been recorded.',
+                    }
+                  : {}),
+              }
+            : result.status === 'wrong-form'
+              ? {
+                  status: 'wrong-form',
+                  student_gave: result.got,
+                  required_form: result.form,
+                  note:
+                    'The expression is equivalent to the answer but not in the form asked for. ' +
+                    'This is not wrong and has not been recorded; ask them to put it in ' +
+                    `${result.form} form.`,
+                }
+              : {
+                  status: 'unparseable',
+                  reason: result.reason,
+                  note:
+                    'This is not a wrong answer. Ask the student to state their value plainly, ' +
+                    'and do not record or imply that they were incorrect.',
+                },
       isError: false,
       events: [{ type: 'answer_checked', problemId, response, result }],
     };

@@ -170,7 +170,7 @@ export const functionGraphsProblems: Problem[] = [
   {
     id: 'function-graphs.gradient-from-standard-form',
     skillIds: ['function-graphs.graph-linear-functions', 'function-graphs.interpret-rate-change'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'Find the gradient of the straight line $3x + 2y = 8$. Then decide whether the point ' +
       '$(4, -2)$ lies on the line.',
@@ -202,7 +202,7 @@ export const functionGraphsProblems: Problem[] = [
   {
     id: 'function-graphs.parabola-vertex',
     skillIds: ['function-graphs.identify-vertices-axes', 'function-graphs.graph-quadratic-functions'],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'For the quadratic function $y = -x^2 + 4x + 5$, decide whether the graph has a maximum ' +
       'or minimum turning point, and find the coordinates of that turning point.',
@@ -235,7 +235,7 @@ export const functionGraphsProblems: Problem[] = [
   {
     id: 'function-graphs.parabola-x-intercepts',
     skillIds: ['function-graphs.identify-vertices-axes'],
-    difficulty: 'advanced',
+    tier: 2,
     statement: 'Find the $x$-intercepts of the graph of $y = -x^2 + 4x + 5$.',
     answer: { type: 'set', values: [5, -1], tolerance: 0 },
     cpaPrompts: {

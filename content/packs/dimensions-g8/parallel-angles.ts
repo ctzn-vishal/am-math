@@ -146,7 +146,7 @@ export const parallelAnglesProblems: Problem[] = [
   {
     id: 'parallel-angles.alternate-angles-x',
     skillIds: ['parallel-angles.angle-properties-parallel', 'parallel-angles.solve-multi-step-geometric'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'In the figure, $AB \\parallel CD$. A transversal meets $AB$ at $P$ and $CD$ at $Q$. ' +
       '$\\angle APQ = (3x + 20)°$ and $\\angle PQD = (5x - 40)°$. Find the value of $x$.',
@@ -178,7 +178,7 @@ export const parallelAnglesProblems: Problem[] = [
   {
     id: 'parallel-angles.regular-polygon-sides',
     skillIds: ['parallel-angles.calculate-interior-exterior'],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'The interior angle of a regular polygon is five times its exterior angle. How many ' +
       'sides does the polygon have?',

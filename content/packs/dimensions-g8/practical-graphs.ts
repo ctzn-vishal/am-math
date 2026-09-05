@@ -155,7 +155,7 @@ export const practicalGraphsProblems: Problem[] = [
   {
     id: 'practical-graphs.cyclist-average-speed',
     skillIds: ['practical-graphs.calculate-speed-average', 'practical-graphs.construct-interpret-distance-time'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'A cyclist rides 30 km in 1.5 hours, rests for 30 minutes, then rides a further 20 km in ' +
       '1 hour. Find her average speed for the whole journey, in km/h, correct to 2 decimal places.',
@@ -187,7 +187,7 @@ export const practicalGraphsProblems: Problem[] = [
   {
     id: 'practical-graphs.car-acceleration',
     skillIds: ['practical-graphs.calculate-speed-average'],
-    difficulty: 'basic',
+    tier: 1,
     statement:
       'A car accelerates uniformly from rest to 24 m/s in 8 seconds. Find its acceleration, ' +
       'in m/s².',
@@ -214,7 +214,7 @@ export const practicalGraphsProblems: Problem[] = [
   {
     id: 'practical-graphs.area-under-speed-time',
     skillIds: ['practical-graphs.interpret-conversion-practical'],
-    difficulty: 'advanced',
+    tier: 2,
     statement:
       'A car accelerates uniformly from rest to 24 m/s in 8 seconds, travels at 24 m/s for 12 ' +
       'seconds, then decelerates uniformly to a stop in 4 seconds. Find the total distance ' +
