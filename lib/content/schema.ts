@@ -58,6 +58,9 @@ export const skillNodeSchema = z.object({
 
 export type SkillNode = z.infer<typeof skillNodeSchema>;
 
+/** As authored, before defaults. See `ProblemInput`. */
+export type SkillNodeInput = z.input<typeof skillNodeSchema>;
+
 // ---------------------------------------------------------------------------
 
 /**
@@ -200,6 +203,14 @@ export const problemSchema = z.object({
 });
 
 export type Problem = z.infer<typeof problemSchema>;
+
+/**
+ * The shape a *pack author* writes, before the schema fills its defaults. Fields with a
+ * default (`tolerance`, `accepts`, `hints`, `variables`, `misconceptionCodes`) may be
+ * omitted, which is what an author naturally does — the pack is parsed once at load and
+ * every consumer downstream sees the completed `Problem`.
+ */
+export type ProblemInput = z.input<typeof problemSchema>;
 
 // ---------------------------------------------------------------------------
 

@@ -140,7 +140,10 @@ describe('problem bank', () => {
     describe(unitId, () => {
       const skills = skillsOfUnit(unitId);
       const skillIds = new Set(skills.map((s) => s.id));
-      const problems = pack.problems.filter((p) => p.skillIds.some((id) => skillIds.has(id)));
+      // A problem belongs to the unit of its FIRST skill — the one it is primarily evidence
+      // for. A crossover item that also lists another unit's skill is held to the standard
+      // under its own unit, not twice.
+      const problems = pack.problems.filter((p) => skillIds.has(p.skillIds[0] ?? ''));
 
       for (const skill of skills) {
         describe(skill.id, () => {

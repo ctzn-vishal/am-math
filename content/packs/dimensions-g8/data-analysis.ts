@@ -1,4 +1,4 @@
-import type { Problem, SkillNode } from '@/lib/content/schema';
+import type { ProblemInput as Problem, SkillNodeInput as SkillNode } from '@/lib/content/schema';
 
 /**
  * Unit 13 — Data Analysis. Hand-authored.
