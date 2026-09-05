@@ -525,17 +525,21 @@ export function fitToRatioForTest(
 }
 
 /**
- * The slant footnote is shown only when the figure opts into the slant triangle.
+ * The footnote states the slant the author gave, and never one we worked out.
  *
- * It states `l = √(r² + h²) = ...`, which is the whole answer to "find the slant height"
- * — printing it on every cone handed the student the result of the item they were being
- * asked to work. Opting in keeps it available where the relationship is the teaching point.
+ * It reads `l = √(r² + h²) = 5`, which is the entire answer to "find the slant height" — and
+ * a whole variation sequence asks exactly that from a radius and a height. Deriving the
+ * value put the answer on the student's canvas before they had touched the problem. Where
+ * the author supplies `slant`, the figure is describing a cone whose slant is already known,
+ * so restating it gives nothing away. The right triangle itself still draws whenever
+ * `showSlantTriangle` is set: it shows *that* the three lengths are related, which is the
+ * teaching point, without doing the arithmetic.
  */
 function dimensionSummary(spec: SolidNetSpec): string | undefined {
   const d = spec.dimensions;
-  if (!spec.showSlantTriangle) return undefined;
   if (spec.solid !== 'cone' || d.radius === undefined || d.height === undefined) return undefined;
-  const slant = d.slant ?? Math.sqrt(d.radius ** 2 + d.height ** 2);
+  if (d.slant === undefined) return undefined;
+  const slant = d.slant;
   return `l = √(r² + h²) = √(${num(d.radius)}² + ${num(d.height)}²) = ${num(slant)}`;
 }
 
