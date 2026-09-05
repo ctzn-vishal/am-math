@@ -1,7 +1,17 @@
-import { ArrowRight, BookOpen, Clock, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import {
+  ArrowRight,
+  BookOpenCheck,
+  CheckCircle2,
+  Clock3,
+  Compass,
+  Shapes,
+  Sparkles,
+} from 'lucide-react';
 import { getPack, getSkill, problemsForSkill, unitOfSkill, unitsInOrder } from '@/lib/content';
 import { getMastery, getRecommendations, openSessionsBySkill } from '@/lib/session/service';
-import type { Mastery, MasteryBand } from '@/lib/mastery/model';
+import type { MasteryBand } from '@/lib/mastery/model';
+import { CourseExplorer, type ExplorerUnit } from '@/components/CourseExplorer';
 import { beginLesson } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -47,210 +57,287 @@ export default async function Dashboard() {
     openSessionsBySkill(),
   ]);
 
-  // One card per skill, newest first. Two abandoned sessions on the same skill are one
-  // thing to pick up, not two.
-  const recent = [...openBySkill.values()].sort((a, b) => b.startedAt - a.startedAt).slice(0, 3);
+  const recent = [...openBySkill.values()].sort((a, b) => b.startedAt - a.startedAt);
+  const started = [...mastery.values()].filter((item) => item.attemptCount > 0).length;
+  const secure = [...mastery.values()].filter((item) => item.band === 'secure').length;
 
-  const started = [...mastery.values()].filter((m) => m.attemptCount > 0).length;
-  const secure = [...mastery.values()].filter((m) => m.band === 'secure').length;
+  const continuePath = recent
+    .map((session) => {
+      const skill = getSkill(session.skillId);
+      if (!skill) return null;
+      return {
+        mode: 'continue' as const,
+        skill,
+        unit: unitOfSkill(skill.id),
+        sessionId: session.sessionId,
+        detail: `${STAGE_LABEL[session.stage]} · last opened ${timeAgo(session.startedAt)}`,
+      };
+    })
+    .find((item) => item !== null);
+
+  const recommendedPath = recommendations
+    .map((recommendation) => {
+      const skill = getSkill(recommendation.skillId);
+      if (!skill) return null;
+      return {
+        mode: 'start' as const,
+        skill,
+        unit: unitOfSkill(skill.id),
+        detail: recommendation.explanation,
+      };
+    })
+    .find((item) => item !== null);
+
+  const primaryPath = continuePath ?? recommendedPath;
+  const secondaryRecommendations = recommendations
+    .filter((item) => item.skillId !== primaryPath?.skill.id)
+    .slice(0, 2);
+
+  const explorerUnits: ExplorerUnit[] = units.map((unit) => ({
+    id: unit.id,
+    order: unit.order,
+    title: unit.title,
+    strand: STRAND_LABEL[unit.strand] ?? unit.strand,
+    skills: unit.skillIds.flatMap((skillId) => {
+      const skill = getSkill(skillId);
+      if (!skill) return [];
+      const band = mastery.get(skill.id)?.band ?? 'unseen';
+      const style = BAND_STYLE[band];
+      const open = openBySkill.get(skill.id);
+      return [
+        {
+          id: skill.id,
+          title: skill.title,
+          problemCount: problemsForSkill(skill.id).length,
+          status: style.label,
+          statusClass: style.text,
+          dotClass: style.dot,
+          ...(open ? { sessionId: open.sessionId } : {}),
+        },
+      ];
+    }),
+  }));
 
   return (
-    <main className="mx-auto max-w-4xl px-5 py-10 sm:px-8 sm:py-14">
-      <header className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+    <main className="mx-auto max-w-6xl px-5 pb-16 pt-8 sm:px-8 sm:pb-24 sm:pt-12">
+      <header className="grid items-center gap-7 sm:gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
         <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-            {pack.title}
-          </p>
-          <h1 className="font-serif text-4xl font-medium tracking-tight text-ink sm:text-5xl">
-            Math Sage
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sage-100 text-sage-600">
+              <Shapes className="h-4 w-4" aria-hidden />
+            </span>
+            <span>
+              <span className="block font-serif text-[18px] leading-none text-ink">Math Sage</span>
+              <span className="mt-1 block text-[9px] font-semibold uppercase tracking-[0.12em] text-ink-faint sm:text-[10px]">
+                {pack.title}
+              </span>
+            </span>
+          </div>
+
+          <h1 className="mt-5 max-w-2xl font-serif text-[2.8rem] font-medium leading-[0.94] tracking-[-0.045em] text-ink sm:mt-7 sm:text-[clamp(3.5rem,7vw,5.8rem)]">
+            See the idea.
+            <span className="block text-sage-600">Then solve it.</span>
           </h1>
-          <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-soft">
-            A calm, one-to-one tutor for Dimensions Math Grade 8. Work with objects, pictures
-            and symbols; ask questions freely; and check an answer only when you are ready.
+          <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-ink-soft sm:mt-6 sm:text-[18px]">
+            A calm maths tutor that helps you build the picture before the symbols. Work one
+            short lesson at a time, ask freely, and check an answer when you feel ready.
           </p>
+
+          <div className="mt-7 hidden flex-wrap gap-x-6 gap-y-3 text-[13px] text-ink-soft sm:flex">
+            <span className="inline-flex items-center gap-2">
+              <Clock3 className="h-4 w-4 text-sage-500" aria-hidden />
+              5–10 minute lessons
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <Shapes className="h-4 w-4 text-sage-500" aria-hidden />
+              Visual explanations
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-sage-500" aria-hidden />
+              Progress saved
+            </span>
+          </div>
         </div>
 
-        {started > 0 && (
-          <dl className="flex shrink-0 gap-6 text-[13px] text-ink-soft">
-            <div>
-              <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-faint">Started</dt>
-              <dd className="mt-0.5 font-serif text-2xl text-ink">
-                {started}
-                <span className="text-[13px] text-ink-faint"> / {pack.skills.length}</span>
-              </dd>
+        {primaryPath && (
+          <section
+            aria-labelledby="today-heading"
+            className="relative overflow-hidden rounded-[1.75rem] border border-sage-200 bg-sage-50 p-5 shadow-[0_24px_70px_-45px_rgba(65,79,46,0.65)] sm:p-7"
+          >
+            <div className="absolute -right-14 -top-16 h-44 w-44 rounded-full bg-sage-100/70" aria-hidden />
+            <div className="relative">
+              <div className="flex items-center justify-between gap-4">
+                <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-sage-600">
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                  Your next step
+                </p>
+                <p className="text-[12px] text-ink-faint">About 10 min</p>
+              </div>
+
+              <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+                {primaryPath.unit ? `Unit ${primaryPath.unit.order} · ${primaryPath.unit.title}` : 'Lesson'}
+              </p>
+              <h2 id="today-heading" className="mt-2 max-w-md font-serif text-[1.65rem] leading-[1.08] text-ink sm:text-[2.15rem] sm:leading-tight">
+                {primaryPath.skill.title}
+              </h2>
+              <p className="mt-4 hidden max-w-md text-[14px] leading-relaxed text-ink-soft sm:block">
+                {primaryPath.skill.summary}
+              </p>
+              <p className="mt-3 line-clamp-2 border-l-2 border-sage-300 pl-3 text-[13px] leading-relaxed text-sage-700 sm:mt-4 sm:line-clamp-none">
+                {primaryPath.detail}
+              </p>
+
+              <form action={beginLesson} className="mt-5 sm:mt-7">
+                <input type="hidden" name="skillId" value={primaryPath.skill.id} />
+                {'sessionId' in primaryPath && (
+                  <input type="hidden" name="sessionId" value={primaryPath.sessionId} />
+                )}
+                <button
+                  type="submit"
+                  className="group flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-sage-600 px-5 text-[15px] font-semibold text-paper shadow-sm transition hover:bg-sage-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
+                >
+                  {primaryPath.mode === 'continue' ? 'Continue lesson' : 'Start today’s lesson'}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                </button>
+              </form>
+
+              <Link
+                href="#course"
+                className="mt-3 flex min-h-11 items-center justify-center rounded-lg text-[13px] font-medium text-ink-soft hover:bg-sage-100 hover:text-sage-700"
+              >
+                Choose a different skill
+              </Link>
             </div>
-            <div>
-              <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-faint">Secure</dt>
-              <dd className="mt-0.5 font-serif text-2xl text-affirm">{secure}</dd>
-            </div>
-          </dl>
+          </section>
         )}
       </header>
 
-      {recent.length > 0 && (
-        <section className="mb-12">
-          <h2 className="mb-4 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
-            <Clock className="h-3.5 w-3.5" />
-            Today · continue learning
-          </h2>
+      {started > 0 && (
+        <section aria-label="Your progress" className="mt-12 rounded-2xl border border-line bg-surface px-5 py-4 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+                Your progress
+              </p>
+              <p className="mt-1 text-[14px] text-ink-soft">
+                <strong className="font-semibold text-ink">{secure} secure</strong>
+                {' · '}
+                {Math.max(0, started - secure)} building
+                {' · '}
+                {pack.skills.length - started} still to explore
+              </p>
+            </div>
+            <div
+              className="h-2 w-full overflow-hidden rounded-full bg-surface-sunk sm:w-64"
+              role="progressbar"
+              aria-label="Skills explored"
+              aria-valuemin={0}
+              aria-valuemax={pack.skills.length}
+              aria-valuenow={started}
+            >
+              <div
+                className="h-full rounded-full bg-sage-500 transition-[width]"
+                style={{ width: `${Math.max(2, (started / pack.skills.length) * 100)}%` }}
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
-          <div className="grid gap-2.5 sm:grid-cols-3">
-            {recent.map((session) => {
+      {(recent.length > 1 || secondaryRecommendations.length > 0) && (
+        <section aria-labelledby="next-heading" className="mt-16">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sage-600">
+                Keep going
+              </p>
+              <h2 id="next-heading" className="mt-1 font-serif text-3xl tracking-tight text-ink">
+                Other useful next steps
+              </h2>
+            </div>
+            <Compass className="hidden h-6 w-6 text-sage-400 sm:block" aria-hidden />
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-2">
+            {recent.slice(1, 2).map((session) => {
               const skill = getSkill(session.skillId);
-              if (!skill) return null;
               const unit = unitOfSkill(session.skillId);
-
-              return (
-                <form action={beginLesson} key={session.sessionId}>
-                  <input type="hidden" name="sessionId" value={session.sessionId} />
-                  <button
-                    type="submit"
-                    className="group flex h-full w-full flex-col rounded-xl border border-sage-200 bg-sage-50 p-4 text-left transition-colors hover:border-sage-400"
-                  >
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-sage-600">
-                      {unit?.title ?? 'Lesson'}
-                    </p>
-                    <p className="mt-1.5 line-clamp-2 flex-1 font-serif text-[15px] leading-snug text-ink">
-                      {skill.title}
-                    </p>
-                    <p className="mt-3 flex items-center justify-between text-[12px] text-ink-faint">
-                      <span>
-                        {STAGE_LABEL[session.stage]} · {timeAgo(session.startedAt)}
-                      </span>
-                      <span className="flex items-center gap-1 font-medium text-sage-700">
-                        Continue
-                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                      </span>
-                    </p>
-                  </button>
-                </form>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {recommendations.length > 0 && (
-        <section className="mb-12">
-          <h2 className="mb-4 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
-            <Sparkles className="h-3.5 w-3.5" />
-            {started === 0 ? 'Today · a good place to start' : 'Today · suggested next'}
-          </h2>
-
-          <div className="space-y-2.5">
-            {recommendations.map((rec) => {
-              const skill = getSkill(rec.skillId);
               if (!skill) return null;
-              const unit = unitOfSkill(rec.skillId);
-              const open = openBySkill.get(rec.skillId);
-
               return (
-                <form action={beginLesson} key={rec.skillId}>
-                  <input type="hidden" name="skillId" value={rec.skillId} />
-                  {open && <input type="hidden" name="sessionId" value={open.sessionId} />}
-                  <button
-                    type="submit"
-                    className="group flex w-full items-center gap-4 rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:border-sage-400 hover:bg-sage-50"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
-                        {unit ? `Unit ${unit.order} · ${unit.title}` : ''}
-                      </p>
-                      <p className="mt-1 font-serif text-[17px] leading-snug text-ink">{skill.title}</p>
-                      <p className="mt-1 text-[13px] text-ink-soft">
-                        {open ? 'You have a lesson in progress here — pick it back up.' : rec.explanation}
-                      </p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5 group-hover:text-sage-500" />
-                  </button>
-                </form>
+                <NextStepCard
+                  key={session.sessionId}
+                  skillId={skill.id}
+                  sessionId={session.sessionId}
+                  eyebrow={unit ? `Continue · ${unit.title}` : 'Continue lesson'}
+                  title={skill.title}
+                  detail={`${STAGE_LABEL[session.stage]} · ${timeAgo(session.startedAt)}`}
+                />
+              );
+            })}
+
+            {secondaryRecommendations.map((recommendation) => {
+              const skill = getSkill(recommendation.skillId);
+              const unit = unitOfSkill(recommendation.skillId);
+              if (!skill) return null;
+              return (
+                <NextStepCard
+                  key={skill.id}
+                  skillId={skill.id}
+                  eyebrow={unit ? `Unit ${unit.order} · ${unit.title}` : 'Suggested skill'}
+                  title={skill.title}
+                  detail={recommendation.explanation}
+                />
               );
             })}
           </div>
         </section>
       )}
 
-      <section>
-        <h2 className="mb-5 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
-          <BookOpen className="h-3.5 w-3.5" />
-          Explore the course
-        </h2>
+      <div className="my-16 flex items-center gap-4" aria-hidden>
+        <div className="h-px flex-1 bg-line" />
+        <BookOpenCheck className="h-4 w-4 text-line-strong" />
+        <div className="h-px flex-1 bg-line" />
+      </div>
 
-        <div className="space-y-1">
-          {units.map((unit) => {
-            const skills = unit.skillIds
-              .map((id) => getSkill(id))
-              .filter((s): s is NonNullable<typeof s> => s !== undefined);
-
-            return (
-              <details
-                key={unit.id}
-                className="group rounded-xl border border-transparent px-4 py-3 transition-colors open:border-line open:bg-surface hover:bg-surface"
-              >
-                <summary className="flex cursor-pointer list-none items-center gap-3">
-                  <span className="w-5 shrink-0 font-mono text-[12px] text-ink-faint">
-                    {unit.order}
-                  </span>
-                  <span className="min-w-0 flex-1 font-serif text-[16px] leading-snug text-ink">
-                    {unit.title}
-                  </span>
-                  <span className="hidden shrink-0 text-[11px] uppercase tracking-[0.08em] text-ink-faint sm:inline">
-                    {STRAND_LABEL[unit.strand] ?? unit.strand}
-                  </span>
-                  <UnitProgress skills={skills.map((s) => s.id)} mastery={mastery} />
-                </summary>
-
-                <div className="mt-3 space-y-1 pl-8">
-                  {skills.map((skill) => {
-                    const m = mastery.get(skill.id);
-                    const band = m?.band ?? 'unseen';
-                    const style = BAND_STYLE[band];
-                    const open = openBySkill.get(skill.id);
-                    const problemCount = problemsForSkill(skill.id).length;
-
-                    return (
-                      <form action={beginLesson} key={skill.id}>
-                        <input type="hidden" name="skillId" value={skill.id} />
-                        {open && <input type="hidden" name="sessionId" value={open.sessionId} />}
-                        <button
-                          type="submit"
-                          className="group/skill flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-sage-50"
-                        >
-                          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${style.dot}`} />
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-[14px] leading-snug text-ink-soft group-hover/skill:text-ink">
-                              {skill.title}
-                            </span>
-                            <span className="mt-0.5 block text-[12px] text-ink-faint">
-                              5–10 min lesson · {problemCount} practice problems available
-                              {open ? ' · in progress' : ''}
-                            </span>
-                          </span>
-                          <span className={`shrink-0 text-[11px] font-medium ${style.text}`}>
-                            {open ? 'Continue' : style.label}
-                          </span>
-                        </button>
-                      </form>
-                    );
-                  })}
-                </div>
-              </details>
-            );
-          })}
-        </div>
-      </section>
+      <CourseExplorer units={explorerUnits} />
     </main>
   );
 }
 
-/** A row of dots per skill. Reads at a glance without claiming a precision it does not have. */
-function UnitProgress({ skills, mastery }: { skills: string[]; mastery: Map<string, Mastery> }) {
+function NextStepCard({
+  skillId,
+  sessionId,
+  eyebrow,
+  title,
+  detail,
+}: {
+  skillId: string;
+  sessionId?: string;
+  eyebrow: string;
+  title: string;
+  detail: string;
+}) {
   return (
-    <span className="flex shrink-0 items-center gap-1" aria-hidden>
-      {skills.map((id) => {
-        const band = mastery.get(id)?.band ?? 'unseen';
-        return <span key={id} className={`h-1.5 w-1.5 rounded-full ${BAND_STYLE[band].dot}`} />;
-      })}
-    </span>
+    <form action={beginLesson}>
+      <input type="hidden" name="skillId" value={skillId} />
+      {sessionId && <input type="hidden" name="sessionId" value={sessionId} />}
+      <button
+        type="submit"
+        className="group flex min-h-32 w-full items-center gap-4 rounded-2xl border border-line bg-surface p-5 text-left transition hover:border-sage-300 hover:bg-sage-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-500"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+            {eyebrow}
+          </span>
+          <span className="mt-2 block font-serif text-[19px] leading-snug text-ink">{title}</span>
+          <span className="mt-2 line-clamp-2 block text-[13px] leading-relaxed text-ink-soft">
+            {detail}
+          </span>
+        </span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-sunk text-ink-faint transition group-hover:bg-sage-100 group-hover:text-sage-700">
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+        </span>
+      </button>
+    </form>
   );
 }

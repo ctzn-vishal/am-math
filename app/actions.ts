@@ -60,6 +60,9 @@ export async function nextProblem(formData: FormData): Promise<void> {
   if (!problem || !skill) return;
 
   await switchProblem(sessionId, problem.id);
+  // A boundary marker lets the lesson rebuild only the new problem's conversation. It also
+  // keeps the stored history intact for learning analytics and later review.
+  await recordTurn(sessionId, 'system', `problem:${problem.id}`);
   await recordTurn(
     sessionId,
     'tutor',

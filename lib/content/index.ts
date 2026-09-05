@@ -90,6 +90,22 @@ export function problemsForSkill(skillId: string, packId?: string): Problem[] {
     .map(({ p }) => p);
 }
 
+/**
+ * The first carefully sequenced item is used as the lesson's worked example. Practice then
+ * begins with the same relationship but changed values, so students imitate an idea rather
+ * than copy an answer. Skills with only one item keep it as practice rather than becoming
+ * unanswerable.
+ */
+export function workedExampleForSkill(skillId: string, packId?: string): Problem | undefined {
+  const problems = problemsForSkill(skillId, packId);
+  return problems.length > 1 ? problems[0] : undefined;
+}
+
+export function practiceProblemsForSkill(skillId: string, packId?: string): Problem[] {
+  const problems = problemsForSkill(skillId, packId);
+  return problems.length > 1 ? problems.slice(1) : problems;
+}
+
 /** The item before this one in its variation sequence, for the Reflect–Expect prompt. */
 export function previousInSequence(problem: Problem, packId?: string): Problem | undefined {
   if (!problem.sequence) return undefined;

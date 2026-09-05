@@ -9,7 +9,7 @@ import {
   getPack,
   getProblem,
   getSkill,
-  problemsForSkill,
+  practiceProblemsForSkill,
   unitOfSkill,
   unitsInOrder,
 } from '@/lib/content';
@@ -93,7 +93,7 @@ export async function startSession(skillId: string, problemId?: string): Promise
 
   // Default to the skill's first problem so a lesson always has something concrete to work
   // on; the tutor can still teach without one.
-  const resolvedProblem = problemId ?? problemsForSkill(skillId)[0]?.id ?? null;
+  const resolvedProblem = problemId ?? practiceProblemsForSkill(skillId)[0]?.id ?? null;
 
   const id = randomUUID();
   await db.insert(sessions).values({
@@ -152,7 +152,16 @@ export async function markBriefed(sessionId: string, problemId: string | null): 
  * leaving `briefedProblemId` untouched is what makes the next turn resend the brief.
  */
 export async function switchProblem(sessionId: string, problemId: string): Promise<void> {
-  await db.update(sessions).set({ problemId, hintsUsed: 0 }).where(eq(sessions.id, sessionId));
+  await db
+    .update(sessions)
+    .set({
+      problemId,
+      hintsUsed: 0,
+      briefedProblemId: null,
+      lastInteractionId: null,
+      cpaStage: 'concrete',
+    })
+    .where(eq(sessions.id, sessionId));
 }
 
 export async function endSession(sessionId: string): Promise<void> {
@@ -177,13 +186,18 @@ export const LESSON_PROBLEM_TARGET = 5;
  * solved in this session, in bank order, so a student who skips one is brought back to it.
  */
 export async function getProblemProgress(context: SessionContext): Promise<ProblemProgress> {
-  const problems = problemsForSkill(context.skillId);
+  const problems = practiceProblemsForSkill(context.skillId);
 
   const solvedRows = await db
     .select({ problemId: attempts.problemId })
     .from(attempts)
     .where(and(eq(attempts.sessionId, context.sessionId), eq(attempts.correct, true)));
-  const solved = new Set(solvedRows.map((r) => r.problemId).filter((p): p is string => p !== null));
+  const practiceIds = new Set(problems.map((problem) => problem.id));
+  const solved = new Set(
+    solvedRows
+      .map((row) => row.problemId)
+      .filter((problemId): problemId is string => problemId !== null && practiceIds.has(problemId)),
+  );
 
   const index = problems.findIndex((p) => p.id === context.problemId);
   const lessonTotal = Math.min(LESSON_PROBLEM_TARGET, problems.length);

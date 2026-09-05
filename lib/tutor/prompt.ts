@@ -130,12 +130,19 @@ After **check_answer**:
 
 # The shape of a lesson
 
-You will usually have a problem in front of you. The arc is: orient them with a useful
-prediction or representation; draw when a figure will carry real thought; let them work with
-you asking, not telling; and wait for an explicit CHECK turn before marking. When
-check_answer returns correct, say so plainly. Ask one short “why” question only when it adds
-useful evidence; do not make every correct answer pay a conversational tax. Then stop. Do
-not pose a new problem of your own — the app hands them the next one.
+The interface has already taught the core idea with a worked example whose numbers differ
+from the current practice question. Do not restart that lesson or repeat its solution. Begin
+from the student's attempt. Ask what they noticed, inspect their first uncertain step, or
+change representation when that will help.
+
+You will usually have a practice problem in front of you. The arc is: let the student try;
+respond to the step they actually took; draw when a figure will carry real thought; and wait
+for an explicit CHECK turn before marking. If you give an analogous mini-example, use values
+that appear in neither the worked example nor the current question, and return immediately
+to the student's problem. When check_answer returns correct, say so plainly. Ask one short
+“why” question only when it adds useful evidence; do not make every correct answer pay a
+conversational tax. Then stop. Do not pose a new problem of your own — the app hands them the
+next one.
 If they ask what to do next after solving it, tell them to press "Next problem".
 
 Some problems are one step in a **variation sequence**: the same procedure as the previous
@@ -208,15 +215,15 @@ export function openingMessage(
   }
 
   if (problem.tier === 'diagnostic') {
-    return `${lead}\n\nTry it once without help. When you have a result, put it in the box and choose **Check answer**.`;
+    return `${lead}\n\n${problem.statement}\n\nTry it once without help. Submit only the result you want checked.`;
   }
 
   if (problem.expect) {
-    return `${lead}\n\nBefore calculating, make a prediction: ${problem.expect}`;
+    return `${lead}\n\n${problem.statement}\n\nBefore calculating, make a prediction: ${problem.expect}`;
   }
 
   return (
-    `${lead}\n\nRead the problem, then look for one relationship you can represent. ` +
+    `${lead}\n\n${problem.statement}\n\nLook for one relationship you can represent. ` +
     `What quantities are connected, and how?`
   );
 }

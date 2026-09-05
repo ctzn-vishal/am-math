@@ -3,7 +3,9 @@ import {
   getPack,
   getSkill,
   prerequisiteChain,
+  practiceProblemsForSkill,
   problemsForSkill,
+  workedExampleForSkill,
   unitsInOrder,
   skillsOfUnit,
   unitOfSkill,
@@ -40,6 +42,16 @@ describe('dimensions-g8 pack', () => {
     const codes = pack.skills.flatMap((s) => s.misconceptions.map((m) => m.code));
     expect(codes.length).toBeGreaterThanOrEqual(28);
     expect(new Set(codes).size).toBe(codes.length);
+  });
+
+  it('keeps each worked example out of the practice sequence', () => {
+    for (const skill of pack.skills) {
+      const example = workedExampleForSkill(skill.id);
+      const practice = practiceProblemsForSkill(skill.id);
+      expect(example, `${skill.id} needs a worked example`).toBeDefined();
+      expect(practice.length, `${skill.id} needs practice after the example`).toBeGreaterThan(0);
+      expect(practice.map((problem) => problem.id)).not.toContain(example?.id);
+    }
   });
 });
 

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { visualSpecSchema } from '@/lib/visual/spec';
 import { runTurn, type TutorEvent } from '@/lib/tutor/engine';
+import { checkAnswer, type CheckResult } from '@/lib/tutor/check';
 import { openingMessage } from '@/lib/tutor/prompt';
 import type { TurnIntent } from '@/lib/tutor/prompt';
+import type { Problem, SkillNode } from '@/lib/content/schema';
 import {
   applyStageChange,
   getSessionContext,
@@ -113,6 +115,37 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const { skill, unitTitle, problem } = lesson;
+
+  // Submission must never depend on the language model deciding to call the marking tool.
+  // Mark the exact answer in code first, persist it, and return useful feedback immediately.
+  // The agent remains available for questions, explanations, hints, and visual coaching.
+  if (intent === 'check' && problem) {
+    const result = checkAnswer(text, problem.answer);
+
+    if (result.status === 'correct' || result.status === 'incorrect') {
+      await recordAttempt({
+        studentId: context.studentId,
+        sessionId,
+        skillId: context.skillId,
+        problemId: problem.id,
+        correct: result.status === 'correct',
+        hintsUsed: context.hintsUsed,
+        cpaStage: context.stage,
+        ...(result.status === 'incorrect' && result.misconceptionCode
+          ? { misconceptionCode: result.misconceptionCode }
+          : {}),
+      });
+      await recordTurn(sessionId, 'system', `check:${result.status}:${problem.id}`);
+    }
+
+    const reply = checkFeedback(result, problem, skill, context.stage);
+    await recordTurn(sessionId, 'tutor', reply);
+    return eventResponse([
+      { type: 'answer_checked', problemId: problem.id, response: text, result },
+      { type: 'text', delta: reply },
+      { type: 'done', interactionId: context.lastInteractionId },
+    ]);
+  }
 
   const encoder = new TextEncoder();
 
@@ -225,4 +258,40 @@ export async function POST(request: Request): Promise<Response> {
       'X-Accel-Buffering': 'no',
     },
   });
+}
+
+function eventResponse(events: TutorEvent[]): Response {
+  const body = events.map((event) => JSON.stringify(event)).join('\n') + '\n';
+  return new Response(body, {
+    headers: {
+      'Content-Type': 'application/x-ndjson; charset=utf-8',
+      'Cache-Control': 'no-store, no-transform',
+      'X-Accel-Buffering': 'no',
+    },
+  });
+}
+
+function checkFeedback(
+  result: CheckResult,
+  problem: Problem,
+  skill: SkillNode,
+  stage: 'concrete' | 'pictorial' | 'abstract',
+): string {
+  switch (result.status) {
+    case 'correct':
+      return result.note
+        ? `Correct. ${result.note} Your method is ready for the next question.`
+        : 'Correct. Your answer matches, and you can move on when you are ready.';
+    case 'wrong-form':
+      return `Your mathematics is equivalent, but the question asks for ${result.form} form. What is the one final change that puts it in that form?`;
+    case 'unparseable':
+      return 'I could not read a final answer there. Write only the value or expression you want checked, then submit it again.';
+    case 'incorrect': {
+      const misconception = result.misconceptionCode
+        ? skill.misconceptions.find((item) => item.code === result.misconceptionCode)
+        : undefined;
+      const nextQuestion = misconception?.probe ?? problem.cpaPrompts[stage];
+      return `Not yet — keep your approach and inspect the earliest useful step: ${nextQuestion}`;
+    }
+  }
 }

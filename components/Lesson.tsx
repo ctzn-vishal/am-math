@@ -5,14 +5,16 @@ import Link from 'next/link';
 import {
   AlertTriangle,
   ArrowRight,
+  BookOpen,
   Check,
   ChevronLeft,
   CircleHelp,
+  ClipboardCheck,
+  Eye,
   ImagePlus,
   Lightbulb,
   Loader2,
   MessageCircle,
-  Shapes,
   X,
 } from 'lucide-react';
 import type { VisualSpec } from '@/lib/visual/spec';
@@ -61,6 +63,12 @@ export interface LessonProps {
   problemStatement?: string;
   problemId?: string;
   answerShape?: string;
+  startInLesson: boolean;
+  lessonExample?: {
+    statement: string;
+    solution: string;
+    visual?: VisualSpec;
+  };
   reference: {
     concrete: string;
     pictorial: string;
@@ -69,7 +77,7 @@ export interface LessonProps {
   };
 }
 
-type MobileView = 'problem' | 'canvas' | 'tutor';
+type LessonView = 'learn' | 'practice';
 
 interface SendOptions {
   imageDataUrl?: string;
@@ -90,6 +98,8 @@ export function Lesson({
   problemStatement,
   problemId,
   answerShape,
+  startInLesson,
+  lessonExample,
   reference,
 }: LessonProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -103,7 +113,7 @@ export function Lesson({
   const [image, setImage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<MobileView>('problem');
+  const [view, setView] = useState<LessonView>(startInLesson ? 'learn' : 'practice');
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -124,6 +134,11 @@ export function Lesson({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, solved]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [problemId]);
+
   // Hand focus back to the box once a reply has landed, so the next thought can be typed
   // without reaching for the mouse.
   useEffect(() => {
@@ -138,7 +153,7 @@ export function Lesson({
 
       setBusy(true);
       setError(null);
-      setMobileView('tutor');
+      setView('practice');
 
       const studentId = crypto.randomUUID();
       const tutorId = crypto.randomUUID();
@@ -295,11 +310,14 @@ export function Lesson({
 
   const hasNext = solved && progress.nextProblemId !== null;
   const allDone = solved && progress.nextProblemId === null;
+  const hasAttempted = messages.some(
+    (message) => message.role === 'student' && message.intent === 'check',
+  );
 
   return (
-    <div className="flex h-dvh flex-col lg:flex-row">
-      <div className="shrink-0 border-b border-line bg-surface lg:hidden">
-        <div className="flex items-center gap-2 px-3 py-2.5">
+    <div className="min-h-dvh bg-paper xl:flex xl:h-dvh xl:overflow-hidden">
+      <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur xl:hidden">
+        <div className="flex items-center gap-2 px-3 py-2.5 sm:px-5">
           <Link
             href="/"
             aria-label="Back to all skills"
@@ -324,23 +342,19 @@ export function Lesson({
           </form>
         </div>
 
-        <div className="grid grid-cols-3 gap-1 px-3 pb-2" role="tablist" aria-label="Lesson views">
-          {(
-            [
-              ['problem', 'Problem'],
-              ['canvas', 'Canvas'],
-              ['tutor', 'Tutor'],
-            ] as const
-          ).map(([id, label]) => (
+        <div className="grid grid-cols-2 gap-1 px-3 pb-2 sm:px-5" role="tablist" aria-label="Lesson steps">
+          {([
+            ['learn', '1. Learn'],
+            ['practice', '2. Practice'],
+          ] as const).map(([id, label]) => (
             <button
               key={id}
               type="button"
               role="tab"
-              aria-selected={mobileView === id}
-              disabled={id === 'canvas' && !spec}
-              onClick={() => setMobileView(id)}
-              className={`min-h-11 rounded-lg px-3 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
-                mobileView === id
+              aria-selected={view === id}
+              onClick={() => setView(id)}
+              className={`min-h-11 rounded-lg px-3 text-[13px] font-medium transition-colors ${
+                view === id
                   ? 'bg-sage-100 text-sage-700'
                   : 'text-ink-faint hover:bg-surface-sunk hover:text-ink'
               }`}
@@ -349,19 +363,12 @@ export function Lesson({
             </button>
           ))}
         </div>
-      </div>
+      </header>
 
-      {/* Canvas */}
-      {/*
-        Stacked below lg, the canvas is capped so the conversation always keeps roughly half
-        the screen — but only once there is a figure to show. An empty canvas collapses to
-        the problem card, so on a phone the first thing seen is the problem and the tutor's
-        opening, not a placeholder.
-      */}
       <section
-        className={`${mobileView === 'tutor' ? 'hidden' : 'flex'} min-h-0 flex-1 flex-col border-b border-line bg-surface lg:flex lg:h-full lg:max-h-none lg:w-[55%] lg:shrink lg:border-b-0 lg:border-r`}
+        className={`${view === 'learn' || view === 'practice' ? 'block' : 'hidden'} border-line bg-surface xl:h-full xl:w-[57%] xl:border-r`}
       >
-        <header className="hidden items-start gap-3 border-b border-line px-4 py-3 sm:px-5 lg:flex">
+        <header className="hidden h-[84px] items-start gap-3 border-b border-line px-5 py-4 xl:flex">
           <Link
             href="/"
             aria-label="Back to all skills"
@@ -369,203 +376,222 @@ export function Lesson({
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
-
           <div className="min-w-0 flex-1">
             <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
               {unitTitle}
             </p>
-            <h1 className="mt-0.5 line-clamp-2 font-serif text-[16px] leading-snug text-ink sm:text-[18px]">
+            <h1 className="mt-0.5 line-clamp-2 font-serif text-[18px] leading-snug text-ink">
               {skillTitle}
             </h1>
           </div>
-
           <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1.5">
             <StageRail stage={stage} />
             <form action={finishLesson}>
               <input type="hidden" name="sessionId" value={sessionId} />
-              <button
-                type="submit"
-                className="text-[11px] font-medium text-ink-faint transition-colors hover:text-ink"
-              >
+              <button type="submit" className="text-[11px] font-medium text-ink-faint hover:text-ink">
                 Finish lesson
               </button>
             </form>
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
-          {problemStatement && (
-            <div
-              className={`${mobileView === 'canvas' ? 'hidden lg:block' : ''} mb-5 rounded-xl border px-4 py-3.5 ${
-                solved ? 'border-affirm/30 bg-affirm-soft' : 'border-line bg-surface-sunk'
+        <div className="hidden border-b border-line px-5 py-2 xl:flex" role="tablist" aria-label="Lesson steps">
+          {([
+            ['learn', BookOpen, 'Learn the idea'],
+            ['practice', ClipboardCheck, `Practice ${progress.index} of ${progress.total}`],
+          ] as const).map(([id, Icon, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={view === id}
+              onClick={() => setView(id)}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-4 text-[13px] font-medium ${
+                view === id ? 'bg-sage-100 text-sage-700' : 'text-ink-faint hover:bg-surface-sunk hover:text-ink'
               }`}
             >
-              <div className="mb-4 border-b border-line pb-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sage-600">
-                    Lesson goal
-                  </p>
-                  <p className="text-[11px] text-ink-faint">
-                    {progress.total} questions · about {Math.max(5, progress.total * 2)} min
-                  </p>
-                </div>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">{skillGoal}</p>
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="px-4 py-5 sm:px-6 sm:py-7 xl:h-[calc(100%-141px)] xl:overflow-y-auto xl:px-8">
+          {view === 'learn' ? (
+            <div className="mx-auto max-w-3xl">
+              <div className="mb-6 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+                <span className="rounded-full bg-sage-500 px-2.5 py-1 text-paper">1 Learn</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+                <span>2 Practise</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+                <span>3 Get coaching</span>
               </div>
 
-              <div className="mb-1.5 flex items-center justify-between gap-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
-                  {progress.total > 1 ? `Problem ${progress.index} of ${progress.total}` : 'Problem'}
-                </p>
-                <p className="flex items-center gap-2 text-[11px] text-ink-faint">
-                  {hintCount > 0 && (
-                    <span className="flex items-center gap-1" title="Hints spent on this problem">
-                      <Lightbulb className="h-3 w-3" />
-                      {hintsUsed}/{hintCount}
-                    </span>
-                  )}
-                  {solved && (
-                    <span className="flex items-center gap-1 font-medium text-affirm">
-                      <Check className="h-3 w-3" /> Solved
-                    </span>
-                  )}
-                </p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-sage-600">Big idea</p>
+              <h2 className="mt-2 font-serif text-2xl leading-tight text-ink sm:text-3xl">See why the rule works.</h2>
+              <p className="mt-3 max-w-2xl text-[15px] leading-7 text-ink-soft">{skillGoal}</p>
+
+              <div className="mt-6 grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-line bg-paper p-4 sm:p-5">
+                  <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-sage-600">
+                    <Eye className="h-4 w-4" /> Picture it
+                  </p>
+                  <MathText className="tutor-prose mt-3 text-[14px] leading-6 text-ink-soft">
+                    {reference.pictorial}
+                  </MathText>
+                </div>
+                <div className="rounded-2xl border border-line bg-paper p-4 sm:p-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-sage-600">Connect the symbols</p>
+                  <MathText className="tutor-prose mt-3 text-[14px] leading-6 text-ink-soft">
+                    {reference.abstract}
+                  </MathText>
+                </div>
               </div>
-              <MathText className="tutor-prose text-[14px] leading-relaxed text-ink">
-                {problemStatement}
-              </MathText>
+
+              {lessonExample && (
+                <article className="mt-5 overflow-hidden rounded-2xl border border-sage-300 bg-paper">
+                  <div className="border-b border-sage-200 bg-sage-50 px-4 py-3 sm:px-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-sage-700">Worked example</p>
+                    <p className="mt-1 text-[12px] text-ink-faint">Study this example; your question uses different values.</p>
+                  </div>
+                  <div className="space-y-5 p-4 sm:p-5">
+                    <MathText className="tutor-prose text-[15px] leading-7 text-ink">
+                      {lessonExample.statement}
+                    </MathText>
+                    {lessonExample.visual && (
+                      <div className="rounded-xl border border-line bg-surface-sunk p-3 sm:p-4">
+                        <VisualCanvas spec={lessonExample.visual} />
+                      </div>
+                    )}
+                    <div className="border-l-2 border-sage-400 pl-4">
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Reason it through</p>
+                      <MathText className="tutor-prose text-[14px] leading-7 text-ink-soft">
+                        {lessonExample.solution}
+                      </MathText>
+                    </div>
+                  </div>
+                </article>
+              )}
+
+              {reference.formulas.length > 0 && (
+                <details className="mt-5 rounded-xl border border-line bg-paper">
+                  <summary className="min-h-11 cursor-pointer px-4 py-3 text-[12px] font-semibold text-sage-700">
+                    Key results to keep nearby
+                  </summary>
+                  <MathText className="tutor-prose border-t border-line px-4 py-4 text-[13px] leading-7 text-ink-soft">
+                    {reference.formulas.map((formula) => `$${formula}$`).join(' · ')}
+                  </MathText>
+                </details>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setView('practice')}
+                className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-sage-500 px-5 text-[14px] font-semibold text-paper hover:opacity-90 sm:w-auto"
+              >
+                Try practice question {progress.index}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="mx-auto max-w-3xl">
+              {problemStatement && (
+                <article className={`rounded-2xl border p-4 sm:p-6 ${solved ? 'border-affirm/30 bg-affirm-soft' : 'border-line bg-paper'}`}>
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-sage-600">
+                      Question {progress.index} of {progress.total}
+                    </p>
+                    <p className="flex items-center gap-3 text-[11px] text-ink-faint">
+                      {hintCount > 0 && <span><Lightbulb className="mr-1 inline h-3 w-3" />{hintsUsed}/{hintCount}</span>}
+                      {solved && <span className="font-medium text-affirm"><Check className="mr-1 inline h-3 w-3" />Correct</span>}
+                    </p>
+                  </div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-sunk" aria-hidden="true">
+                    <div className="h-full rounded-full bg-sage-500" style={{ width: `${Math.max(8, (progress.index / progress.total) * 100)}%` }} />
+                  </div>
+                  <MathText className="tutor-prose mt-5 font-serif text-[18px] leading-8 text-ink sm:text-[21px]">
+                    {problemStatement}
+                  </MathText>
+                </article>
+              )}
+
+              {spec && (
+                <div className="mt-5 rounded-2xl border border-line bg-paper p-4 sm:p-5">
+                  <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-sage-600">Visual coaching</p>
+                  <VisualCanvas spec={spec} onChange={setSpec} />
+                  {inconsistency && (
+                    <p className="mt-4 rounded-lg border border-query/30 bg-query-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-query">{inconsistency}</p>
+                  )}
+                  <button
+                    onClick={shareCanvas}
+                    disabled={busy}
+                    className="mt-4 min-h-11 rounded-lg border border-line px-3.5 text-[13px] font-medium text-ink-soft hover:border-sage-400 hover:bg-sage-50 disabled:opacity-40"
+                  >
+                    Show the tutor my version
+                  </button>
+                </div>
+              )}
 
               {hasNext && (
-                <form action={nextProblem} className="mt-3">
+                <form action={nextProblem} className="mt-5">
                   <input type="hidden" name="sessionId" value={sessionId} />
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1.5 rounded-lg bg-sage-500 px-3.5 py-2 text-[13px] font-medium text-paper transition-opacity hover:opacity-90"
-                  >
-                    Next problem
-                    <ArrowRight className="h-3.5 w-3.5" />
+                  <button type="submit" className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-sage-500 px-5 text-[14px] font-semibold text-paper hover:opacity-90 sm:w-auto">
+                    Next question
+                    <ArrowRight className="h-4 w-4" />
                   </button>
                 </form>
               )}
 
               {allDone && (
-                <form action={finishLesson} className="mt-3">
+                <form action={finishLesson} className="mt-5">
                   <input type="hidden" name="sessionId" value={sessionId} />
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1.5 rounded-lg bg-sage-500 px-3.5 py-2 text-[13px] font-medium text-paper transition-opacity hover:opacity-90"
-                  >
+                  <button type="submit" className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-sage-500 px-5 text-[14px] font-semibold text-paper hover:opacity-90 sm:w-auto">
                     Finish this lesson
-                    <ArrowRight className="h-3.5 w-3.5" />
+                    <ArrowRight className="h-4 w-4" />
                   </button>
                 </form>
               )}
             </div>
           )}
-
-          <details
-            className={`${mobileView === 'canvas' ? 'hidden lg:block' : ''} mb-5 rounded-xl border border-line bg-surface`}
-          >
-            <summary className="min-h-11 cursor-pointer px-4 py-3 text-[12px] font-semibold text-sage-700">
-              Open the idea and key results
-            </summary>
-            <div className="space-y-3 border-t border-line px-4 py-4">
-              {(
-                [
-                  ['Handle it', reference.concrete],
-                  ['See it', reference.pictorial],
-                  ['Symbolise it', reference.abstract],
-                ] as const
-              ).map(([label, body]) => (
-                <div key={label}>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
-                    {label}
-                  </p>
-                  <MathText className="tutor-prose mt-1 text-[13px] leading-relaxed text-ink-soft">
-                    {body}
-                  </MathText>
-                </div>
-              ))}
-              {reference.formulas.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
-                    Key results
-                  </p>
-                  <MathText className="tutor-prose mt-1 text-[13px] leading-relaxed text-ink-soft">
-                    {reference.formulas.map((formula) => `$${formula}$`).join(' · ')}
-                  </MathText>
-                </div>
-              )}
-            </div>
-          </details>
-
-          <div className={mobileView === 'problem' ? 'hidden lg:block' : ''}>
-            {spec ? (
-              <>
-              <VisualCanvas spec={spec} onChange={setSpec} />
-
-              {inconsistency && (
-                <p className="mt-4 rounded-lg border border-query/30 bg-query-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-query">
-                  {inconsistency}
-                </p>
-              )}
-
-              <button
-                onClick={shareCanvas}
-                disabled={busy}
-                className="mt-5 rounded-lg border border-line px-3.5 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:border-sage-400 hover:bg-sage-50 hover:text-sage-700 disabled:opacity-40"
-              >
-                Show the tutor my version
-              </button>
-              </>
-            ) : (
-            <div className="flex h-full min-h-40 flex-col items-center justify-center text-center">
-              <p className="max-w-xs text-[14px] leading-relaxed text-ink-faint">
-                Ask the tutor to show the relationship visually. A figure you can work with
-                will appear here.
-              </p>
-            </div>
-            )}
-          </div>
         </div>
       </section>
 
-      {/* Conversation */}
-      <section className={`${mobileView === 'tutor' ? 'flex' : 'hidden'} min-h-0 flex-1 flex-col bg-paper lg:flex`}>
+      <section className={`${view === 'practice' ? 'flex' : 'hidden'} min-h-[520px] flex-col bg-paper xl:flex xl:h-full xl:min-h-0 xl:w-[43%]`}>
+        <div className="hidden h-[84px] shrink-0 border-b border-line px-6 py-4 xl:block">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-sage-600">Your tutor</p>
+          <p className="mt-1 text-[13px] text-ink-faint">Try first. Coaching adapts to the step you take.</p>
+        </div>
+
         <div
           ref={scrollRef}
           role="log"
           aria-live="polite"
           aria-busy={busy}
-          className="min-h-0 flex-1 overflow-y-auto px-5 py-6"
+          className="min-h-[280px] flex-1 px-4 py-6 sm:px-6 xl:min-h-0 xl:overflow-y-auto"
         >
           <div className="mx-auto max-w-xl space-y-6">
-            {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))}
+            <div className="xl:hidden">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-sage-600">Your tutor</p>
+              <p className="mt-1 text-[13px] text-ink-faint">Try the question, then get help on your exact step.</p>
+            </div>
+
+            {messages.map((message) => <MessageBubble key={message.id} message={message} />)}
 
             {error && (
-              <div
-                role="alert"
-                className="flex items-start gap-2.5 rounded-xl border border-fault/30 bg-fault-soft px-4 py-3"
-              >
+              <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-fault/30 bg-fault-soft px-4 py-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-fault" />
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium text-fault">The tutor could not reply</p>
-                  <p className="mt-0.5 break-words text-[13px] leading-relaxed text-ink-soft">
-                    {error}
-                  </p>
+                  <p className="mt-0.5 break-words text-[13px] leading-relaxed text-ink-soft">{error}</p>
                 </div>
               </div>
             )}
 
             {hasNext && !busy && (
-              <form action={nextProblem} className="flex justify-center pt-2">
+              <form action={nextProblem} className="flex justify-center pt-2 xl:hidden">
                 <input type="hidden" name="sessionId" value={sessionId} />
-                <button
-                  type="submit"
-                  className="flex items-center gap-1.5 rounded-full border border-sage-400 bg-sage-50 px-4 py-2 text-[13px] font-medium text-sage-700 transition-colors hover:bg-sage-100"
-                >
-                  Next problem
+                <button type="submit" className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-sage-400 bg-sage-50 px-4 text-[13px] font-medium text-sage-700 hover:bg-sage-100">
+                  Next question
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
               </form>
@@ -573,35 +599,18 @@ export function Lesson({
           </div>
         </div>
 
-        <div className="border-t border-line bg-surface px-5 py-4">
+        <div className="sticky bottom-0 shrink-0 border-t border-line bg-surface/95 px-4 py-4 backdrop-blur sm:px-6 xl:static">
           <div className="mx-auto max-w-xl">
-            {!solved && (
+            {!solved && hasAttempted && (
               <div className="mb-3 flex flex-wrap gap-2" aria-label="Learning support">
-                <button
-                  type="button"
-                  onClick={() => requestSupport('smaller')}
-                  disabled={busy}
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-[12px] font-medium text-ink-soft hover:border-sage-400 hover:bg-sage-50 disabled:opacity-40"
-                >
-                  <CircleHelp className="h-3.5 w-3.5" />
-                  Smaller step
+                <button type="button" onClick={() => requestSupport('smaller')} disabled={busy} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-[12px] font-medium text-ink-soft hover:border-sage-400 hover:bg-sage-50 disabled:opacity-40">
+                  <CircleHelp className="h-3.5 w-3.5" /> Break it down
                 </button>
-                <button
-                  type="button"
-                  onClick={() => requestSupport('visual')}
-                  disabled={busy}
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-[12px] font-medium text-ink-soft hover:border-sage-400 hover:bg-sage-50 disabled:opacity-40"
-                >
-                  <Shapes className="h-3.5 w-3.5" />
-                  Show it visually
+                <button type="button" onClick={() => requestSupport('visual')} disabled={busy} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-[12px] font-medium text-ink-soft hover:border-sage-400 hover:bg-sage-50 disabled:opacity-40">
+                  <Eye className="h-3.5 w-3.5" /> Visual hint
                 </button>
                 {hintCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={requestHint}
-                    disabled={busy || hintsUsed >= hintCount}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-query/30 bg-query-soft px-3 text-[12px] font-medium text-query hover:border-query disabled:opacity-40"
-                  >
+                  <button type="button" onClick={requestHint} disabled={busy || hintsUsed >= hintCount} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-query/30 bg-query-soft px-3 text-[12px] font-medium text-query hover:border-query disabled:opacity-40">
                     <Lightbulb className="h-3.5 w-3.5" />
                     {hintsUsed >= hintCount ? 'All hints used' : `Hint ${hintsUsed + 1} of ${hintCount}`}
                   </button>
@@ -609,24 +618,18 @@ export function Lesson({
               </div>
             )}
 
+            {!solved && !hasAttempted && (
+              <p className="mb-3 text-[12px] text-ink-faint">Give it one try. Hints and visual coaching appear after your first attempt.</p>
+            )}
+
             {allDone && !busy && (
-              <div className="rounded-2xl border border-affirm/30 bg-affirm-soft p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-affirm">
-                  Lesson complete
-                </p>
+              <div className="mb-4 rounded-2xl border border-affirm/30 bg-affirm-soft p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-affirm">Lesson complete</p>
                 <h2 className="mt-1 font-serif text-[18px] text-ink">You reached today&apos;s goal.</h2>
-                <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-                  You practised {skillTitle.toLowerCase()} across {progress.total} questions. Your
-                  answers and hint use have been saved so the course can choose a useful next step.
-                </p>
                 <form action={finishLesson} className="mt-3">
                   <input type="hidden" name="sessionId" value={sessionId} />
-                  <button
-                    type="submit"
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-sage-500 px-4 text-[13px] font-medium text-paper hover:opacity-90"
-                  >
-                    See what to learn next
-                    <ArrowRight className="h-3.5 w-3.5" />
+                  <button type="submit" className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-sage-500 px-4 text-[13px] font-medium text-paper hover:opacity-90">
+                    See what to learn next <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </form>
               </div>
@@ -637,87 +640,50 @@ export function Lesson({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={image} alt="Attached working" className="h-14 w-14 rounded object-cover" />
                 <span className="flex-1 text-[13px] text-ink-soft">Photo attached</span>
-                <button
-                  onClick={() => setImage(null)}
-                  className="rounded p-1 text-ink-faint hover:bg-surface hover:text-ink"
-                  aria-label="Remove photo"
-                >
+                <button onClick={() => setImage(null)} className="rounded p-1 text-ink-faint hover:bg-surface hover:text-ink" aria-label="Remove photo">
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
 
-            <div className="flex items-end gap-2 rounded-2xl border border-line bg-surface px-3 py-2 focus-within:border-sage-400">
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="mb-1 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-surface-sunk hover:text-ink"
-                aria-label="Attach a photo of your working"
-                type="button"
-              >
+            <div className="flex items-end gap-2 rounded-2xl border border-line bg-paper px-3 py-2 focus-within:border-sage-400">
+              <button onClick={() => fileRef.current?.click()} className="mb-1 rounded-lg p-1.5 text-ink-faint hover:bg-surface-sunk hover:text-ink" aria-label="Attach a photo of your working" type="button">
                 <ImagePlus className="h-[18px] w-[18px]" />
               </button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                onChange={pickImage}
-                className="hidden"
-              />
-
+              <input ref={fileRef} type="file" accept="image/*" onChange={pickImage} className="hidden" />
               <textarea
                 ref={textRef}
                 value={input}
-                autoFocus
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  e.target.style.height = 'auto';
-                  e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
+                onChange={(event) => {
+                  setInput(event.target.value);
+                  event.target.style.height = 'auto';
+                  event.target.style.height = `${Math.min(event.target.scrollHeight, 160)}px`;
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit(e.ctrlKey || e.metaKey ? 'check' : 'ask');
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    handleSubmit('check');
                   }
                 }}
                 rows={1}
-                placeholder={
-                  solved
-                    ? 'Ask about the solution or explain why it worked…'
-                    : 'Write your thinking, a question, or your final answer…'
-                }
-                aria-label="Your message or answer"
+                placeholder={solved ? 'Ask about why the solution works…' : 'Type the answer you want checked…'}
+                aria-label="Your answer or question"
                 className="max-h-40 flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-relaxed text-ink outline-none placeholder:text-ink-faint"
               />
             </div>
 
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <p className="min-w-0 text-[11px] leading-relaxed text-ink-faint">
-                {answerShape ? `${answerShape} · ` : ''}write maths like x^2 or 3/4
-              </p>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  onClick={() => handleSubmit('ask')}
-                  disabled={busy || (input.trim().length === 0 && !image)}
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-ink-soft hover:border-sage-400 hover:bg-sage-50 disabled:opacity-35"
-                  type="button"
-                >
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  Ask tutor
+            <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[11px] leading-relaxed text-ink-faint">{answerShape ?? 'Write a concise final answer'} · Enter submits</p>
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <button onClick={() => handleSubmit('ask')} disabled={busy || (input.trim().length === 0 && !image)} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-ink-soft hover:border-sage-400 hover:bg-sage-50 disabled:opacity-35" type="button">
+                  <MessageCircle className="h-3.5 w-3.5" /> Ask a question
                 </button>
-                <button
-                  onClick={() => handleSubmit('check')}
-                  disabled={busy || solved || input.trim().length === 0}
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-sage-500 px-3.5 text-[12px] font-medium text-paper hover:opacity-90 disabled:opacity-35"
-                  type="button"
-                >
+                <button onClick={() => handleSubmit('check')} disabled={busy || solved || input.trim().length === 0} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-sage-500 px-4 text-[12px] font-semibold text-paper hover:opacity-90 disabled:opacity-35" type="button">
                   {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                  Check answer
+                  Submit answer
                 </button>
               </div>
             </div>
-            <p className="mt-1.5 text-right text-[10px] text-ink-faint">
-              Enter asks · Ctrl/⌘+Enter checks · Shift+Enter adds a line
-            </p>
           </div>
         </div>
       </section>
@@ -794,7 +760,7 @@ function MessageBubble({ message }: { message: Message }) {
       )}
 
       {message.spec && (
-        <p className="mt-2 text-[12px] italic text-ink-faint">Drew a figure on the canvas →</p>
+        <p className="mt-2 text-[12px] italic text-ink-faint">Added visual coaching beside the question.</p>
       )}
     </div>
   );
